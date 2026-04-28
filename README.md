@@ -115,6 +115,12 @@ docker run -p 8080:8080 --env-file .env.local timer
 
 Deploy the container to Cloud Run and point `timer.marques.llc` at the service. Set all required environment variables in Cloud Run and grant the runtime service account access to Firebase Auth and Firestore.
 
+## Continuous Deployment
+
+GitHub Actions deploys to Cloud Run on every push to `main`. The workflow in `.github/workflows/deploy-cloud-run.yml` authenticates to Google Cloud with Workload Identity Federation, builds the Docker image with the public `NEXT_PUBLIC_*` values required by Next.js, pushes it to Artifact Registry, and deploys the new image to the `timer` service in `us-east4`.
+
+Runtime-only environment variables, credentials, and secrets stay configured on the Cloud Run service and are preserved when the workflow deploys a new revision.
+
 ## Scripts
 
 ```bash

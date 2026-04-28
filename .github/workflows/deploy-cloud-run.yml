@@ -1,0 +1,77 @@
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cloud-run-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_ID: timer-494702
+  REGION: us-east4
+  SERVICE: timer
+  IMAGE: us-east4-docker.pkg.dev/timer-494702/cloud-run-source-deploy/timer
+  NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyBeeHc0gXA-KVB3TPQ5_v3uj4ZocrHdqu0"
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "timer-494702.firebaseapp.com"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: "timer-494702"
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "timer-494702.firebasestorage.app"
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "6260177574"
+  NEXT_PUBLIC_FIREBASE_APP_ID: "1:6260177574:web:4046d3b4e0ef6220b75267"
+  NEXT_PUBLIC_TIMER_USERNAME_EMAIL_DOMAIN: "timer.local"
+  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ""
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/6260177574/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: cloud-build-run-deployer@timer-494702.iam.gserviceaccount.com
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="${NEXT_PUBLIC_FIREBASE_API_KEY}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="${NEXT_PUBLIC_FIREBASE_PROJECT_ID}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="${NEXT_PUBLIC_FIREBASE_APP_ID}" \
+            --build-arg NEXT_PUBLIC_TIMER_USERNAME_EMAIL_DOMAIN="${NEXT_PUBLIC_TIMER_USERNAME_EMAIL_DOMAIN}" \
+            --build-arg NEXT_PUBLIC_RECAPTCHA_SITE_KEY="${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}" \
+            -t "${IMAGE}:${GITHUB_SHA}" \
+            -t "${IMAGE}:latest" \
+            .
+
+      - name: Push image
+        run: |
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker push "${IMAGE}:latest"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE}:${GITHUB_SHA}" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet

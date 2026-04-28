@@ -33,6 +33,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if adminUser() || owns(userId);
       allow create, update, delete: if false;
+
+      match /passkeys/{passkeyId} {
+        allow read, write: if false;
+      }
     }
 
     match /projects/{projectId} {
@@ -70,6 +74,10 @@ service cloud.firestore {
     match /auditLogs/{logId} {
       allow read: if adminUser();
       allow create, update, delete: if false;
+    }
+
+    match /webauthnChallenges/{challengeId} {
+      allow read, write: if false;
     }
   }
 }

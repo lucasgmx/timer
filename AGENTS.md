@@ -85,6 +85,24 @@ deployment configuration.
 - Do not introduce a marketing landing page for app work. The first screen should
   remain the usable product experience.
 
+## GCloud CLI
+
+The GCP project is `timer-494702`. Authenticate with `gcloud auth login` when
+credentials are missing or expired.
+
+- Get an access token: `TOKEN=$(gcloud auth print-access-token)`
+- Deploy Firestore rules only: `npx firebase deploy --only firestore:rules --project timer-494702`
+- Deploy Firestore indexes only: `npx firebase deploy --only firestore:indexes --project timer-494702`
+- When `firebase deploy` fails due to auth, pass the token explicitly:
+  `TOKEN=$(gcloud auth print-access-token) && npx firebase deploy --project timer-494702 --token "$TOKEN"`
+- Create or update a Firestore composite index directly via gcloud when the
+  Firebase CLI index deployment is blocked:
+  `gcloud firestore indexes composite create --collection-group=<group> --field-config ... --project=timer-494702`
+- For single-field exemptions:
+  `gcloud firestore indexes fields update <field> --collection-group=<group> --index=... --project=timer-494702`
+- Never commit access tokens or service account keys; always retrieve them
+  at runtime with `gcloud auth print-access-token` or via the Admin SDK.
+
 ## Environment
 
 Local development expects Firebase browser config and Firebase Admin credentials

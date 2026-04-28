@@ -20,30 +20,14 @@ export async function POST(request: Request) {
     const db = adminDb();
 
     const result = await db.runTransaction(async (transaction) => {
-      const projectRef = db.collection(COLLECTIONS.projects).doc(body.projectId);
       const taskRef = db.collection(COLLECTIONS.tasks).doc(body.taskId);
-      const [projectSnap, taskSnap] = await Promise.all([
-        transaction.get(projectRef),
-        transaction.get(taskRef)
-      ]);
-
-      if (!projectSnap.exists || projectSnap.data()?.status === "archived") {
-        throw new Response("Project is not available.", { status: 400 });
-      }
+      const taskSnap = await transaction.get(taskRef);
 
       if (!taskSnap.exists || taskSnap.data()?.status === "archived") {
         throw new Response("Task is not available.", { status: 400 });
       }
 
-      if (taskSnap.data()?.projectId !== body.projectId) {
-        throw new Response("Task does not belong to the selected project.", { status: 400 });
-      }
-
-      const hourlyRateCentsSnapshot = Number(
-        taskSnap.data()?.hourlyRateCentsOverride ??
-          projectSnap.data()?.defaultHourlyRateCents ??
-          0
-      );
+      const hourlyRateCentsSnapshot = Number(taskSnap.data()?.hourlyRateCentsOverride ?? 0);
       const amountCentsSnapshot = calculateAmountCents(
         body.durationSeconds,
         hourlyRateCentsSnapshot
@@ -65,7 +49,6 @@ export async function POST(request: Request) {
         transaction.set(ref, {
           userId: actor.uid,
           taskId: body.taskId,
-          projectId: body.projectId,
           description: body.description ?? "",
           startTime,
           endTime,
@@ -143,7 +126,6 @@ export async function POST(request: Request) {
 
       transaction.update(ref, {
         taskId: body.taskId,
-        projectId: body.projectId,
         description: body.description ?? "",
         startTime,
         endTime,

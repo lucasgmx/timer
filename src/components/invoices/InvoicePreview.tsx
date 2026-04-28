@@ -20,8 +20,7 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
           {invoice.lineItems.map((lineItem) => (
             <div key={lineItem.timeEntryId} className="invoice-line">
               <div>
-                <strong>{lineItem.projectName}</strong>
-                <div className="muted">{lineItem.taskTitle}</div>
+                <strong>{lineItem.taskTitle}</strong>
                 {lineItem.description ? (
                   <div className="fine-print">{lineItem.description}</div>
                 ) : null}

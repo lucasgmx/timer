@@ -1,12 +1,16 @@
 export const COLLECTIONS = {
   users: "users",
-  projects: "projects",
   tasks: "tasks",
   timeEntries: "timeEntries",
   invoices: "invoices",
   invoiceCounters: "invoiceCounters",
   calendarDaySummaries: "calendarDaySummaries",
-  auditLogs: "auditLogs"
+  auditLogs: "auditLogs",
+  webauthnChallenges: "webauthnChallenges"
+} as const;
+
+export const SUBCOLLECTIONS = {
+  passkeys: "passkeys"
 } as const;
 
 export function userCalendarSummaryId(userId: string, dateKey: string) {

@@ -1,5 +1,5 @@
 import type { DocumentData, DocumentSnapshot } from "firebase/firestore";
-import type { CalendarDaySummary, Invoice, Project, Task, TimeEntry } from "@/types";
+import type { CalendarDaySummary, Invoice, Task, TimeEntry } from "@/types";
 
 export function toDate(value: unknown) {
   if (value instanceof Date) {
@@ -13,25 +13,10 @@ export function toDate(value: unknown) {
   return new Date();
 }
 
-export function projectFromDoc(doc: DocumentSnapshot<DocumentData>): Project {
-  const data = doc.data() ?? {};
-  return {
-    id: doc.id,
-    name: String(data.name ?? "Untitled project"),
-    clientName: data.clientName ?? null,
-    defaultHourlyRateCents: Number(data.defaultHourlyRateCents ?? 0),
-    currency: "USD",
-    status: data.status === "archived" ? "archived" : "active",
-    createdAt: toDate(data.createdAt),
-    updatedAt: toDate(data.updatedAt)
-  };
-}
-
 export function taskFromDoc(doc: DocumentSnapshot<DocumentData>): Task {
   const data = doc.data() ?? {};
   return {
     id: doc.id,
-    projectId: String(data.projectId ?? ""),
     title: String(data.title ?? "Untitled task"),
     description: data.description ?? null,
     hourlyRateCentsOverride:
@@ -50,7 +35,6 @@ export function timeEntryFromDoc(doc: DocumentSnapshot<DocumentData>): TimeEntry
     id: doc.id,
     userId: String(data.userId ?? ""),
     taskId: String(data.taskId ?? ""),
-    projectId: String(data.projectId ?? ""),
     description: data.description ?? "",
     startTime: toDate(data.startTime),
     endTime: data.endTime ? toDate(data.endTime) : null,

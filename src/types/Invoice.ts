@@ -4,8 +4,6 @@ export type InvoiceLineItem = {
   timeEntryId: string;
   taskId: string;
   taskTitle: string;
-  projectId: string;
-  projectName: string;
   userId: string;
   description?: string;
   dateKey: string;

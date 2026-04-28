@@ -8,7 +8,6 @@ export type AuditAction =
   | "timeEntry.created"
   | "timeEntry.updated"
   | "timeEntry.stopped"
-  | "project.upserted"
   | "task.upserted"
   | "user.roleChanged";
 

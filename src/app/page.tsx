@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Script from "next/script";
-import { LogIn } from "lucide-react";
+import { startAuthentication } from "@simplewebauthn/browser";
+import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import { Fingerprint, LogIn } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import MatrixRain from "@/components/MatrixRain";
 import { Button } from "@/components/ui/Button";
@@ -30,10 +32,11 @@ if (typeof window !== "undefined" && !RECAPTCHA_SITE_KEY && process.env.NODE_ENV
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, profile, loading, error, signIn } = useAuth();
+  const { user, profile, loading, error, signIn, signInWithToken } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_SITE_KEY);
 
@@ -80,6 +83,47 @@ export default function HomePage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handlePasskeySignIn() {
+    setPasskeyBusy(true);
+    setFormError(null);
+    try {
+      // 1. Get authentication options (pass username hint if filled in)
+      const optRes = await fetch("/api/passkeys/auth-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username || undefined })
+      });
+      if (!optRes.ok) throw new Error(await optRes.text());
+      const { options, challengeId } = (await optRes.json()) as {
+        options: PublicKeyCredentialRequestOptionsJSON;
+        challengeId: string;
+      };
+
+      // 2. Prompt browser for passkey assertion
+      const authResponse = await startAuthentication({ optionsJSON: options });
+
+      // 3. Verify with server and get custom token
+      const verRes = await fetch("/api/passkeys/auth-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId, response: authResponse })
+      });
+      if (!verRes.ok) throw new Error(await verRes.text());
+      const { customToken } = (await verRes.json()) as { customToken: string };
+
+      // 4. Sign in to Firebase with the custom token
+      await signInWithToken(customToken);
+    } catch (err) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        setFormError("Passkey sign-in was cancelled.");
+      } else {
+        setFormError(err instanceof Error ? err.message : "Passkey sign-in failed.");
+      }
+    } finally {
+      setPasskeyBusy(false);
     }
   }
 
@@ -134,6 +178,16 @@ export default function HomePage() {
             {submitting ? (
               <span className="login-spinner-row"><span className="login-spinner" aria-hidden="true" />Signing in...</span>
             ) : "Sign in"}
+          </Button>
+          <div className="login-divider"><span>or</span></div>
+          <Button
+            type="button"
+            variant="secondary"
+            icon={<Fingerprint size={16} />}
+            onClick={() => void handlePasskeySignIn()}
+            disabled={passkeyBusy || submitting}
+          >
+            {passkeyBusy ? "Waiting for passkey…" : "Sign in with passkey"}
           </Button>
           {RECAPTCHA_SITE_KEY && (
             <p className="recaptcha-notice">

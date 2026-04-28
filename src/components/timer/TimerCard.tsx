@@ -1,49 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Play, Square } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input, Select } from "@/components/ui/Input";
-import type { Project, Task, TimeEntry } from "@/types";
+import { Input } from "@/components/ui/Input";
+import type { Task, TimeEntry } from "@/types";
 import { RunningTimer } from "./RunningTimer";
 
 type TimerCardProps = {
-  projects: Project[];
   tasks: Task[];
   runningEntry: TimeEntry | null;
   onChanged: () => Promise<void> | void;
 };
 
-export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCardProps) {
+export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
   const { getToken } = useAuth();
-  const activeProjects = projects.filter((project) => project.status === "active");
-  const flycoProject = activeProjects.find((p) => p.name === "Flyco");
-  const [projectId, setProjectId] = useState(flycoProject?.id ?? activeProjects[0]?.id ?? "");
-  const projectTasks = useMemo(
-    () =>
-      tasks.filter((task) => task.projectId === projectId && task.status === "active"),
-    [projectId, tasks]
-  );
+  const activeTasks = tasks.filter((task) => task.status === "active");
   const [taskInput, setTaskInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (activeProjects.length === 0) return;
-    const preferred = activeProjects.find((p) => p.name === "Flyco") ?? activeProjects[0];
-    setProjectId((current) => {
-      if (!current || !activeProjects.some((p) => p.id === current)) {
-        return preferred.id;
-      }
-      return current;
-    });
-  }, [activeProjects.map((p) => p.id).join(",")]);
+  const [optimisticEntry, setOptimisticEntry] = useState<TimeEntry | null>(null);
+  const [optimisticTask, setOptimisticTask] = useState<Task | null>(null);
+  const [optimisticStopped, setOptimisticStopped] = useState(false);
 
   useEffect(() => {
     setTaskInput("");
-  }, [projectId]);
+  }, []);
 
   async function callApi(path: string, payload: Record<string, unknown>) {
     const token = await getToken();
@@ -58,31 +42,60 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
 
   async function handleStart() {
     const trimmed = taskInput.trim();
-    if (!trimmed || !projectId) return;
+    if (!trimmed) return;
     setBusy(true);
     setError(null);
+
+    // Find existing active task (case-insensitive)
+    const existingTask = activeTasks.find(
+      (t) => t.title.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    // Show the running state immediately (optimistic UI)
+    const optimisticStart = new Date();
+    const optimisticId = `optimistic-${optimisticStart.getTime()}`;
+    const taskForDisplay = existingTask ?? {
+      id: optimisticId,
+      title: trimmed,
+      status: "active" as const,
+      hourlyRateCentsOverride: null,
+      createdAt: optimisticStart,
+      updatedAt: optimisticStart
+    };
+    setOptimisticEntry({
+      id: optimisticId,
+      userId: "",
+      taskId: taskForDisplay.id,
+      description: "",
+      startTime: optimisticStart,
+      endTime: null,
+      durationSeconds: 0,
+      hourlyRateCentsSnapshot: 0,
+      amountCentsSnapshot: 0,
+      status: "running",
+      invoiceId: null,
+      invoiceStatusSnapshot: null,
+      dateKey: "",
+      createdAt: optimisticStart,
+      updatedAt: optimisticStart
+    });
+    if (!existingTask) {
+      setOptimisticTask(taskForDisplay as Task);
+    }
+
     try {
-      // Find existing active task (case-insensitive)
-      let resolvedTaskId = projectTasks.find(
-        (t) => t.title.toLowerCase() === trimmed.toLowerCase()
-      )?.id;
+      const payload = existingTask
+        ? { taskId: existingTask.id }
+        : { taskTitle: trimmed };
 
-      // Create the task if it doesn't exist yet
-      if (!resolvedTaskId) {
-        const created = await callApi("/api/tasks/upsert", {
-          projectId,
-          title: trimmed,
-          status: "active"
-        });
-        resolvedTaskId = created.id as string;
-      }
-
-      await callApi("/api/time-entries/start", { projectId, taskId: resolvedTaskId });
+      await callApi("/api/time-entries/start", payload);
       setTaskInput("");
       await onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Timer action failed.");
     } finally {
+      setOptimisticEntry(null);
+      setOptimisticTask(null);
       setBusy(false);
     }
   }
@@ -91,6 +104,7 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
     if (!runningEntry) return;
     setBusy(true);
     setError(null);
+    setOptimisticStopped(true);
     try {
       await callApi("/api/time-entries/stop", { timeEntryId: runningEntry.id });
       await onChanged();
@@ -98,29 +112,25 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
       setError(err instanceof Error ? err.message : "Timer action failed.");
     } finally {
       setBusy(false);
+      setOptimisticStopped(false);
     }
   }
 
-  const runningTask = runningEntry
-    ? tasks.find((task) => task.id === runningEntry.taskId)
-    : null;
-  const runningProject = runningEntry
-    ? projects.find((project) => project.id === runningEntry.projectId)
+  const effectiveRunningEntry = optimisticStopped ? null : (optimisticEntry ?? runningEntry);
+  const allTasks = optimisticTask ? [...tasks, optimisticTask] : tasks;
+  const runningTask = effectiveRunningEntry
+    ? allTasks.find((task) => task.id === effectiveRunningEntry.taskId)
     : null;
 
   return (
-    <Card eyebrow="live timer" title={runningEntry ? "Timer running" : "Start tracking"} className={runningEntry ? "timer-running" : ""}>
+    <Card title={effectiveRunningEntry ? "Timer running" : "Start tracking"} className={effectiveRunningEntry ? "timer-running" : ""}>
       <div className="stack">
-        {runningEntry ? (
+        {effectiveRunningEntry ? (
           <>
             <div className="running-task-block">
-              <div className="running-task-project-row">
-                <span className="status-dot" aria-hidden="true" />
-                <span className="running-task-project">{runningProject?.name ?? "Project"}</span>
-              </div>
               <div className="running-task-name">{runningTask?.title ?? "Task"}</div>
             </div>
-            <RunningTimer startTime={runningEntry.startTime} />
+            <RunningTimer startTime={effectiveRunningEntry.startTime} />
             <Button
               variant="danger"
               icon={<Square />}
@@ -133,23 +143,9 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
         ) : (
           <>
             <div className="field">
-              <label htmlFor="timer-project">Project</label>
-              <Select
-                id="timer-project"
-                value={projectId}
-                onChange={(event) => setProjectId(event.target.value)}
-              >
-                {activeProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="field">
               <label htmlFor="timer-task">Task</label>
               <datalist id="timer-task-list">
-                {projectTasks.map((task) => (
+                {activeTasks.map((task) => (
                   <option key={task.id} value={task.title} />
                 ))}
               </datalist>
@@ -165,7 +161,7 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
             <Button
               variant="primary"
               icon={<Play />}
-              disabled={busy || !projectId || !taskInput.trim()}
+              disabled={busy || !taskInput.trim()}
               onClick={() => void handleStart()}
             >
               Start timer

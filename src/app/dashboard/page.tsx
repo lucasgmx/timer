@@ -4,71 +4,131 @@ import {
   collection,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   where
 } from "firebase/firestore";
-import { Receipt } from "lucide-react";
+import { Receipt, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DashboardCalendar } from "@/components/calendar/DashboardCalendar";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
 import { AppShell } from "@/components/layout/AppShell";
+import MatrixRain from "@/components/MatrixRain";
+import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
+import { Input, Select, Textarea } from "@/components/ui/Input";
 import { formatCents, formatDuration } from "@/lib/billing/formatDuration";
 import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
 import {
   invoiceFromDoc,
-  projectFromDoc,
-  summaryFromDoc,
   taskFromDoc
 } from "@/lib/firebase/clientConverters";
-import type { CalendarDaySummary, Project, Task, TimeEntry } from "@/types";
+import type { Invoice, Task, TimeEntry } from "@/types";
 import { timeEntryFromDoc } from "@/lib/firebase/clientConverters";
+
+function formatDateKey(key: string) {
+  return new Date(`${key}T00:00:00.000Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+function formatDateRange(start: string, end: string) {
+  if (start === end) return formatDateKey(start);
+  const s = new Date(`${start}T00:00:00.000Z`);
+  const e = new Date(`${end}T00:00:00.000Z`);
+  const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
+  const sameMonth = sameYear && s.getUTCMonth() === e.getUTCMonth();
+  const startFmt = s.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: "UTC"
+  });
+  const endFmt = e.toLocaleDateString("en-US", {
+    ...(sameMonth ? {} : { month: "short" }),
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+  return `${startFmt} – ${endFmt}`;
+}
 
 function formatTime(date: Date | null | undefined) {
   if (!date) return "—";
   return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false
-  });
+    hour12: true
+  }).toLowerCase();
+}
+
+function formatShortDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  return `${hours}:${String(minutes).padStart(2, "0")}`;
 }
 
 export default function DashboardPage() {
   const { profile, getToken } = useAuth();
+  const router = useRouter();
   const today = todayDateKey();
   const [range, setRange] = useState<DateRange>({ start: today, end: today });
   const [rangeReady, setRangeReady] = useState(false);
-  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
-  const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [runningEntry, setRunningEntry] = useState<TimeEntry | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [summaries, setSummaries] = useState<CalendarDaySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoicing, setInvoicing] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [detailEntry, setDetailEntry] = useState<TimeEntry | null>(null);
+  const [detailTaskId, setDetailTaskId] = useState("");
+  const [detailDateKey, setDetailDateKey] = useState("");
+  const [detailHours, setDetailHours] = useState("");
+  const [detailDescription, setDetailDescription] = useState("");
+  const [detailBusy, setDetailBusy] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const loadRunning = useCallback(async () => {
+  const loadInvoices = useCallback(async () => {
     if (!profile) return;
+    setInvoicesLoading(true);
+    setInvoicesError(null);
     try {
       const snap = await getDocs(
-        query(
-          collection(db, "timeEntries"),
-          where("userId", "==", profile.uid),
-          where("status", "==", "running"),
-          limit(1)
-        )
+        query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(100))
       );
-      setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
-    } catch {
-      // non-critical
+      setInvoices(snap.docs.map(invoiceFromDoc));
+    } catch (e) {
+      setInvoicesError(e instanceof Error ? e.message : "Unable to load invoices.");
+    } finally {
+      setInvoicesLoading(false);
     }
+  }, [profile]);
+
+  // Real-time subscription to running entry
+  useEffect(() => {
+    if (!profile) return;
+    const q = query(
+      collection(db, "timeEntries"),
+      where("userId", "==", profile.uid),
+      where("status", "==", "running"),
+      limit(1)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
+    });
+    return unsub;
   }, [profile]);
 
   // Determine default range from last invoice on mount
@@ -76,14 +136,12 @@ export default function DashboardPage() {
     if (!profile) return;
     void (async () => {
       try {
-        const [projectSnap, taskSnap, lastInvoiceSnap] = await Promise.all([
-          getDocs(query(collection(db, "projects"), orderBy("name", "asc"))),
+        const [taskSnap, lastInvoiceSnap] = await Promise.all([
           getDocs(query(collection(db, "tasks"), orderBy("title", "asc"))),
           getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(1)))
         ]);
-        setProjects(projectSnap.docs.map(projectFromDoc));
         setTasks(taskSnap.docs.map(taskFromDoc));
-        void loadRunning();
+        void loadInvoices();
         const lastInvoice = lastInvoiceSnap.docs[0]
           ? invoiceFromDoc(lastInvoiceSnap.docs[0])
           : null;
@@ -98,7 +156,7 @@ export default function DashboardPage() {
         setRangeReady(true);
       }
     })();
-  }, [profile, today, loadRunning]);
+  }, [profile, today, loadInvoices]);
 
   // Load uninvoiced entries for the selected range
   const loadEntries = useCallback(async () => {
@@ -134,42 +192,9 @@ export default function DashboardPage() {
     }
   }, [profile, rangeReady, range.start, range.end]);
 
-  // Load calendar summaries for the viewed month
-  const loadSummaries = useCallback(async () => {
-    if (!profile) return;
-    const monthStart = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-01`;
-    const lastDay = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
-    const monthEnd = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-    try {
-      const summariesQuery =
-        profile.role === "admin"
-          ? query(
-              collection(db, "calendarDaySummaries"),
-              where("scope", "==", "all"),
-              where("dateKey", ">=", monthStart),
-              where("dateKey", "<=", monthEnd)
-            )
-          : query(
-              collection(db, "calendarDaySummaries"),
-              where("scope", "==", "user"),
-              where("userId", "==", profile.uid),
-              where("dateKey", ">=", monthStart),
-              where("dateKey", "<=", monthEnd)
-            );
-      const snap = await getDocs(summariesQuery);
-      setSummaries(snap.docs.map(summaryFromDoc));
-    } catch {
-      // Summaries are non-critical; silently ignore
-    }
-  }, [profile, viewYear, viewMonth]);
-
   useEffect(() => {
     void loadEntries();
   }, [loadEntries]);
-
-  useEffect(() => {
-    void loadSummaries();
-  }, [loadSummaries]);
 
   const totals = useMemo(
     () =>
@@ -179,6 +204,48 @@ export default function DashboardPage() {
       ),
     [entries]
   );
+
+  function openDetail(entry: TimeEntry) {
+    setDetailEntry(entry);
+    setDetailTaskId(entry.taskId);
+    setDetailDateKey(entry.dateKey);
+    setDetailHours((entry.durationSeconds / 3600).toFixed(2));
+    setDetailDescription(entry.description ?? "");
+    setDetailError(null);
+  }
+
+  async function handleDetailSave() {
+    if (!detailEntry) return;
+    const parsedHours = Number(detailHours);
+    if (!Number.isFinite(parsedHours) || parsedHours <= 0) {
+      setDetailError("Enter a positive duration.");
+      return;
+    }
+    setDetailBusy(true);
+    setDetailError(null);
+    try {
+      const token = await getToken();
+      const response = await fetch("/api/time-entries/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          id: detailEntry.id,
+          taskId: detailTaskId,
+          dateKey: detailDateKey,
+          durationSeconds: Math.round(parsedHours * 3600),
+          description: detailDescription
+        })
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setDetailEntry(null);
+      await loadEntries();
+    } catch (e) {
+      setDetailError(e instanceof Error ? e.message : "Unable to save entry.");
+    } finally {
+      setDetailBusy(false);
+    }
+  }
+
 
   async function handleInvoiceNow() {
     if (!profile || entries.length === 0) return;
@@ -197,40 +264,27 @@ export default function DashboardPage() {
         })
       });
       if (!response.ok) throw new Error(await response.text());
-      await loadEntries();
+      const result = (await response.json()) as { id: string };
+      router.push(`/invoices/${result.id}`);
     } catch (e) {
       setInvoiceError(e instanceof Error ? e.message : "Failed to generate invoice.");
-    } finally {
       setInvoicing(false);
     }
   }
 
   return (
+    <>
+    <MatrixRain />
     <AppShell>
       <main className="page page-grid">
-        <div>
-          <div className="eyebrow">dashboard</div>
-          <h1 className="page-title">Time &amp; billing</h1>
-        </div>
-
         {error ? <div className="error-state">{error}</div> : null}
 
         <div className="page-grid two">
-          <Card eyebrow="calendar" title="Select billing range">
-            <DashboardCalendar
-              range={range}
-              onRangeChange={setRange}
-              summaries={summaries}
-              onViewChange={(y, m) => {
-                setViewYear(y);
-                setViewMonth(m);
-              }}
-            />
-          </Card>
-
-          <div className="stack">
-          <Card eyebrow="billing" title="Uninvoiced work">
+          <Card title="Uninvoiced work">
             <div className="stack">
+              <div className="range-label">
+                {formatDateRange(range.start, range.end)}
+              </div>
               <div className="billing-summary">
                 <div className="billing-summary-item">
                   <span className="fine-print">Total time</span>
@@ -263,18 +317,13 @@ export default function DashboardPage() {
           </Card>
 
           <TimerCard
-            projects={projects}
             tasks={tasks}
             runningEntry={runningEntry}
-            onChanged={async () => {
-              await loadRunning();
-              await loadEntries();
-            }}
+            onChanged={loadEntries}
           />
-          </div>
         </div>
 
-        <Card eyebrow="entries" title="Time entries">
+        <Card title="Time entries">
           {loading ? (
             <div className="loading-state">Loading entries…</div>
           ) : entries.length === 0 ? (
@@ -282,24 +331,26 @@ export default function DashboardPage() {
           ) : (
             <div className="entry-list">
               {entries.map((entry) => {
-                const project = projects.find((p) => p.id === entry.projectId);
                 const task = tasks.find((t) => t.id === entry.taskId);
                 return (
                   <div key={entry.id} className="entry-row">
-                    <div className="entry-main">
-                      <strong className="entry-task">{task?.title ?? "Task"}</strong>
-                      <span className="fine-print entry-project">{project?.name ?? "Project"}</span>
+                    <button
+                      className="entry-task-btn"
+                      onClick={() => openDetail(entry)}
+                    >
+                      {task?.title ?? "Task"}
+                    </button>
+                    <div className="entry-meta">
+                      <strong className="entry-duration mono-number">{formatShortDuration(entry.durationSeconds)}</strong>
                     </div>
-                    <div className="entry-times">
-                      <span className="mono-number">
-                        {formatTime(entry.startTime)}
-                        {entry.endTime ? ` – ${formatTime(entry.endTime)}` : ""}
-                      </span>
-                      <span className="fine-print">{entry.dateKey}</span>
-                    </div>
-                    <div className="entry-amount">
-                      <strong className="mono-number">{formatDuration(entry.durationSeconds)}</strong>
-                      <span className="fine-print mono-number">{formatCents(entry.amountCentsSnapshot)}</span>
+                    <div className="entry-actions">
+                      <button
+                        className="entry-edit-btn"
+                        title="Edit entry"
+                        onClick={() => openDetail(entry)}
+                      >
+                        <Pencil size={14} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -307,7 +358,69 @@ export default function DashboardPage() {
             </div>
           )}
         </Card>
+
+        {detailEntry ? (() => {
+          const activeTasks = tasks.filter((t) => t.status === "active");
+          return (
+            <div className="entry-detail-overlay" onClick={() => setDetailEntry(null)}>
+              <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
+                <div className="entry-detail-times">
+                  <div className="entry-detail-time-block">
+                    <span className="fine-print">Started</span>
+                    <span className="mono-number">{formatTime(detailEntry.startTime)}</span>
+                    <span className="entry-detail-date">{detailEntry.startTime ? detailEntry.startTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</span>
+                  </div>
+                  <div className="entry-detail-time-block">
+                    <span className="fine-print">Ended</span>
+                    <span className="mono-number">{formatTime(detailEntry.endTime)}</span>
+                    <span className="entry-detail-date">{detailEntry.endTime ? detailEntry.endTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</span>
+                  </div>
+                </div>
+                <div className="entry-detail-divider" />
+                <div className="field">
+                  <label htmlFor="detail-task">Task</label>
+                  <Select id="detail-task" value={detailTaskId} onChange={(e) => setDetailTaskId(e.target.value)}>
+                    {activeTasks.map((t) => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="entry-detail-cluster">
+                  <div className="field">
+                    <label htmlFor="detail-date">Date</label>
+                    <Input id="detail-date" type="date" value={detailDateKey} onChange={(e) => setDetailDateKey(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="detail-hours">Hours</label>
+                    <Input id="detail-hours" type="number" min="0.01" step="0.01" value={detailHours} onChange={(e) => setDetailHours(e.target.value)} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="detail-desc">Description</label>
+                  <Textarea id="detail-desc" value={detailDescription} onChange={(e) => setDetailDescription(e.target.value)} />
+                </div>
+                {detailError ? <div className="error-state">{detailError}</div> : null}
+                <div className="entry-detail-actions">
+                  <button className="entry-detail-close" onClick={() => setDetailEntry(null)}>Cancel</button>
+                  <button className="entry-detail-save" disabled={detailBusy} onClick={() => void handleDetailSave()}>
+                    {detailBusy ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })() : null}
+
+        {invoicesError ? <div className="error-state">{invoicesError}</div> : null}
+        <Card title="Invoice history">
+          {invoicesLoading ? (
+            <div className="loading-state">Loading invoices…</div>
+          ) : (
+            <InvoiceTable invoices={invoices} />
+          )}
+        </Card>
       </main>
     </AppShell>
+    </>
   );
 }

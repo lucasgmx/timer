@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, error } = useAuth();
@@ -39,11 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
-      <Sidebar />
-      <div className="main-panel">
-        <Header />
-        {children}
-      </div>
+      <Header />
+      {children}
     </div>
   );
 }

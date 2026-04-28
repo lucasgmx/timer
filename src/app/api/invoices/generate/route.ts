@@ -16,7 +16,6 @@ type BillableEntryDoc = {
   id: string;
   userId: string;
   taskId: string;
-  projectId: string;
   description?: string;
   dateKey: string;
   durationSeconds: number;
@@ -71,18 +70,10 @@ export async function POST(request: Request) {
       }
 
       const taskIds = Array.from(new Set(billableEntries.map((entry) => entry.taskId)));
-      const projectIds = Array.from(
-        new Set(billableEntries.map((entry) => entry.projectId))
-      );
 
       const taskSnaps = await Promise.all(
         taskIds.map((taskId) =>
           transaction.get(db.collection(COLLECTIONS.tasks).doc(String(taskId)))
-        )
-      );
-      const projectSnaps = await Promise.all(
-        projectIds.map((projectId) =>
-          transaction.get(db.collection(COLLECTIONS.projects).doc(String(projectId)))
         )
       );
 
@@ -110,32 +101,18 @@ export async function POST(request: Request) {
             }
           ])
       );
-      const projects = new Map(
-        projectSnaps
-          .filter((snap) => snap.exists)
-          .map((snap) => [
-            snap.id,
-            {
-              id: snap.id,
-              name: String(snap.data()?.name ?? "Untitled project"),
-              defaultHourlyRateCents: Number(snap.data()?.defaultHourlyRateCents ?? 0)
-            }
-          ])
-      );
 
       const invoiceSnapshot = calculateInvoiceLineItems(
         billableEntries.map((entry) => ({
           id: entry.id,
           userId: String(entry.userId),
           taskId: String(entry.taskId),
-          projectId: String(entry.projectId),
           description: entry.description ? String(entry.description) : undefined,
           dateKey: String(entry.dateKey),
           durationSeconds: Number(entry.durationSeconds),
           hourlyRateCentsSnapshot: Number(entry.hourlyRateCentsSnapshot ?? 0)
         })),
-        tasks,
-        projects
+        tasks
       );
 
       const invoiceRef = db.collection(COLLECTIONS.invoices).doc();

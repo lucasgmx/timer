@@ -14,13 +14,6 @@ export async function POST(request: Request) {
     const db = adminDb();
 
     const result = await db.runTransaction(async (transaction) => {
-      const projectRef = db.collection(COLLECTIONS.projects).doc(body.projectId);
-      const projectSnap = await transaction.get(projectRef);
-
-      if (!projectSnap.exists || projectSnap.data()?.status === "archived") {
-        throw new Response("Project is not available.", { status: 400 });
-      }
-
       const ref = body.id
         ? db.collection(COLLECTIONS.tasks).doc(body.id)
         : db.collection(COLLECTIONS.tasks).doc();
@@ -30,7 +23,6 @@ export async function POST(request: Request) {
       transaction.set(
         ref,
         {
-          projectId: body.projectId,
           title: body.title,
           description: body.description ?? null,
           hourlyRateCentsOverride: body.hourlyRateCentsOverride ?? null,
@@ -51,7 +43,6 @@ export async function POST(request: Request) {
         COLLECTIONS.tasks,
         ref.id,
         {
-          projectId: body.projectId,
           previousRate,
           hourlyRateCentsOverride: body.hourlyRateCentsOverride ?? null,
           status: body.status

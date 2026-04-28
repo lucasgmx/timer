@@ -84,15 +84,292 @@
   backdrop-filter: blur(18px);
 }
 
+.topbar-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.topbar-brand img {
+  display: block;
+  height: 29px;
+  width: auto;
+}
+
 .topbar-date {
-  margin-top: 4px;
-  color: var(--text);
-  font-size: 0.9rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
+.topbar-clocks {
+  display: flex;
+  gap: 10px;
+}
+
+.topbar-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 160, 30, 0.22);
+  border-radius: 6px;
+  background: #0c0d08;
+  padding: 6px 12px 8px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 0 18px rgba(255, 140, 0, 0.07);
+}
+
+.topbar-clock-label {
+  color: rgba(255, 160, 30, 0.45);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.topbar-clock-display {
+  position: relative;
+  display: inline-flex;
+}
+
+.topbar-clock-ghost {
+  font-family: 'DSEG7', monospace;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: rgba(255, 140, 0, 0.12);
+  user-select: none;
+  pointer-events: none;
+}
+
+.topbar-clock-time {
+  position: absolute;
+  inset: 0;
+  font-family: 'DSEG7', monospace;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #ffaa00;
+  text-shadow:
+    0 0 6px rgba(255, 170, 0, 0.9),
+    0 0 16px rgba(255, 130, 0, 0.5),
+    0 0 32px rgba(255, 100, 0, 0.2);
 }
 
 .topbar-username {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  text-shadow:
+    0 0 6px rgba(140, 232, 173, 0.8),
+    0 0 16px rgba(140, 232, 173, 0.4);
+  transition: opacity 0.15s;
+}
+
+.topbar-username:hover {
+  opacity: 0.75;
+}
+
+/* Account modal */
+.account-modal {
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 32px 96px rgba(0, 0, 0, 0.72);
+  color: var(--text);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.account-modal::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.account-modal-inner {
+  padding: 20px;
+}
+
+.account-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-modal-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.account-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
   color: var(--muted);
-  font-size: 0.82rem;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.account-modal-close:hover {
+  color: var(--text);
+}
+
+.account-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.account-section:last-child {
+  margin-bottom: 0;
+}
+
+.account-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.account-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.account-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted-2);
+}
+
+.account-error {
+  font-size: 0.8rem;
+  color: var(--red);
+}
+
+.account-success {
+  font-size: 0.8rem;
+  color: var(--green);
+}
+
+.passkey-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.passkey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.passkey-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.passkey-type {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.passkey-date {
+  font-size: 0.7rem;
+  color: var(--muted-2);
+}
+
+.passkey-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--muted-2);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.passkey-remove:hover {
+  color: var(--red);
+}
+
+.account-pw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.topbar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.topbar-icon-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 @media (max-width: 920px) {

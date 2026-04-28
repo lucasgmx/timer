@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { todayDateKey } from "@/lib/dates/dateKeys";
-import type { Project, Task, TimeEntry } from "@/types";
+import type { Task, TimeEntry } from "@/types";
 
 type TimeEntryFormProps = {
-  projects: Project[];
   tasks: Task[];
   editingEntry?: TimeEntry | null;
   onSaved: () => Promise<void> | void;
@@ -18,21 +17,14 @@ type TimeEntryFormProps = {
 };
 
 export function TimeEntryForm({
-  projects,
   tasks,
   editingEntry,
   onSaved,
   onCancelEdit
 }: TimeEntryFormProps) {
   const { getToken } = useAuth();
-  const activeProjects = projects.filter((project) => project.status === "active");
-  const [projectId, setProjectId] = useState(activeProjects[0]?.id ?? "");
-  const projectTasks = useMemo(
-    () =>
-      tasks.filter((task) => task.projectId === projectId && task.status === "active"),
-    [projectId, tasks]
-  );
-  const [taskId, setTaskId] = useState(projectTasks[0]?.id ?? "");
+  const activeTasks = tasks.filter((task) => task.status === "active");
+  const [taskId, setTaskId] = useState(activeTasks[0]?.id ?? "");
   const [dateKey, setDateKey] = useState(todayDateKey());
   const [hours, setHours] = useState("1.00");
   const [description, setDescription] = useState("");
@@ -41,7 +33,6 @@ export function TimeEntryForm({
 
   useEffect(() => {
     if (editingEntry) {
-      setProjectId(editingEntry.projectId);
       setTaskId(editingEntry.taskId);
       setDateKey(editingEntry.dateKey);
       setHours((editingEntry.durationSeconds / 3600).toFixed(2));
@@ -50,16 +41,10 @@ export function TimeEntryForm({
   }, [editingEntry]);
 
   useEffect(() => {
-    if (!projectId && activeProjects[0]) {
-      setProjectId(activeProjects[0].id);
+    if (!taskId && activeTasks[0]) {
+      setTaskId(activeTasks[0].id);
     }
-  }, [activeProjects, projectId]);
-
-  useEffect(() => {
-    if (!projectTasks.some((task) => task.id === taskId)) {
-      setTaskId(projectTasks[0]?.id ?? "");
-    }
-  }, [projectTasks, taskId]);
+  }, [activeTasks, taskId]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,7 +67,6 @@ export function TimeEntryForm({
         },
         body: JSON.stringify({
           id: editingEntry?.id,
-          projectId,
           taskId,
           dateKey,
           durationSeconds: Math.round(parsedHours * 3600),
@@ -118,27 +102,13 @@ export function TimeEntryForm({
     >
       <form className="form-grid" onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="manual-project">Project</label>
-          <Select
-            id="manual-project"
-            value={projectId}
-            onChange={(event) => setProjectId(event.target.value)}
-          >
-            {activeProjects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="field">
           <label htmlFor="manual-task">Task</label>
           <Select
             id="manual-task"
             value={taskId}
             onChange={(event) => setTaskId(event.target.value)}
           >
-            {projectTasks.map((task) => (
+            {activeTasks.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.title}
               </option>
@@ -180,7 +150,7 @@ export function TimeEntryForm({
           type="submit"
           variant="primary"
           icon={<Save />}
-          disabled={busy || !projectId || !taskId}
+          disabled={busy || !taskId}
         >
           {busy ? "Saving..." : editingEntry ? "Save changes" : "Add entry"}
         </Button>

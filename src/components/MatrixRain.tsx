@@ -28,7 +28,7 @@ export default function MatrixRain() {
 
     let animationId: number;
     let lastTime = 0;
-    let cols: Column[] = [];
+    const cols: Column[] = [];
 
     function makeColumn(rows: number): Column {
       return {

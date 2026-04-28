@@ -3,6 +3,7 @@
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signOut as firebaseSignOut,
   type User
 } from "firebase/auth";
@@ -34,6 +35,7 @@ type AuthContextValue = {
   loading: boolean;
   error: string | null;
   signIn: (username: string, password: string) => Promise<void>;
+  signInWithToken: (customToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string>;
   refreshProfile: () => Promise<void>;
@@ -110,6 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, usernameToAuthEmail(username), password);
   }, []);
 
+  const signInWithToken = useCallback(async (customToken: string) => {
+    if (!firebaseClientConfigured) {
+      throw new Error("Firebase client environment variables are not configured.");
+    }
+    await signInWithCustomToken(auth, customToken);
+  }, []);
+
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
   }, []);
@@ -131,11 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       signIn,
+      signInWithToken,
       signOut,
       getToken,
       refreshProfile
     }),
-    [error, getToken, loading, profile, refreshProfile, signIn, signOut, user]
+    [error, getToken, loading, profile, refreshProfile, signIn, signInWithToken, signOut, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

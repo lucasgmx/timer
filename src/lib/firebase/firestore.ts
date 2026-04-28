@@ -1,5 +1,6 @@
 export const COLLECTIONS = {
   users: "users",
+  projects: "projects",
   tasks: "tasks",
   timeEntries: "timeEntries",
   invoices: "invoices",

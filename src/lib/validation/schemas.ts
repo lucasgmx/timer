@@ -72,3 +72,11 @@ export const taskUpsertSchema = z.object({
   hourlyRateCentsOverride: z.number().int().nonnegative().max(1_000_000).optional().nullable(),
   status: z.enum(["active", "archived"]).default("active")
 });
+
+export const projectUpsertSchema = z.object({
+  id: nonEmptyIdSchema.optional(),
+  name: z.string().trim().min(1).max(160),
+  clientName: z.string().trim().min(1).max(160).optional().nullable(),
+  defaultHourlyRateCents: z.number().int().nonnegative().max(1_000_000),
+  status: z.enum(["active", "archived"]).default("active")
+});

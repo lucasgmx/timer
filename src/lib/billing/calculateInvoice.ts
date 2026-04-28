@@ -1,5 +1,5 @@
 import type { InvoiceLineItem } from "@/types/Invoice";
-import { calculateAmountCents, secondsToDecimalHours } from "./formatDuration";
+import { calculateAmountCents, calculateTotalAmountCents, secondsToDecimalHours } from "./formatDuration";
 
 export type BillableTimeEntrySnapshot = {
   id: string;
@@ -46,7 +46,7 @@ export function calculateInvoiceLineItems(
     };
   });
 
-  const subtotalCents = lineItems.reduce((total, item) => total + item.amountCents, 0);
+  const subtotalCents = calculateTotalAmountCents(lineItems);
 
   return {
     lineItems,

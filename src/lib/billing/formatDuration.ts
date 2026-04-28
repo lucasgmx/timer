@@ -17,6 +17,15 @@ export function calculateAmountCents(durationSeconds: number, hourlyRateCents: n
   return Math.round((Math.max(0, durationSeconds) * hourlyRateCents) / 3600);
 }
 
+export function calculateTotalAmountCents(
+  lineItems: Array<{ durationSeconds: number; hourlyRateCents: number }>
+): number {
+  return lineItems.reduce(
+    (sum, item) => sum + calculateAmountCents(item.durationSeconds, item.hourlyRateCents),
+    0
+  );
+}
+
 export function formatCents(cents: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

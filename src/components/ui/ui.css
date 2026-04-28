@@ -44,7 +44,7 @@
 
 .ui-card-header-main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
 }
 
@@ -54,7 +54,6 @@
   color: var(--green);
   font-size: 0.85rem;
   flex-shrink: 0;
-  margin-top: 3px;
 }
 
 .ui-button {

@@ -32,7 +32,7 @@ export function Header() {
     <header className="topbar">
       <div className="topbar-brand-block">
         <Link href="/dashboard" className="topbar-brand">
-          <Image src="/logo_white.png" alt="Timer" width={200} height={29} priority />
+          <Image src="/logo_white.png" alt="Timer" width={200} height={29} priority style={{ height: "auto" }} />
         </Link>
         {profile ? (
           <button
@@ -49,12 +49,12 @@ export function Header() {
           <div key={tz} className="topbar-clock">
             <span className="topbar-clock-label">{label}</span>
             <div className="topbar-clock-display">
-              <span className="topbar-clock-ghost" aria-hidden="true">88:88</span>
+              <span className="topbar-clock-ghost" aria-hidden="true">88:88 AM</span>
               <span className="topbar-clock-time">
                 {new Intl.DateTimeFormat("en-US", {
                   hour: "2-digit",
                   minute: "2-digit",
-                  hour12: false,
+                  hour12: true,
                   timeZone: tz,
                 }).format(now)}
               </span>

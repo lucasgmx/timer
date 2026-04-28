@@ -16,7 +16,19 @@ export const metadata: Metadata = {
     default: "Timer",
     template: "%s | Timer"
   },
-  description: "Internal time tracking and invoicing for marques.llc."
+  description: "Internal time tracking and invoicing for marques.llc.",
+  openGraph: {
+    type: "website",
+    siteName: "Timer",
+    title: "Timer",
+    description: "Internal time tracking and invoicing for marques.llc.",
+    url: "https://timer.marques.llc"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Timer",
+    description: "Internal time tracking and invoicing for marques.llc."
+  }
 };
 
 export default function RootLayout({

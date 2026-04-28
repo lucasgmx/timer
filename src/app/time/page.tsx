@@ -36,19 +36,22 @@ export default function TimePage() {
   useEffect(() => {
     if (!profile) return;
 
-    void loadTasks();
+    let unsub: (() => void) | undefined;
 
-    const q = query(
-      collection(db, "timeEntries"),
-      where("userId", "==", profile.uid),
-      where("status", "==", "running"),
-      limit(1)
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
-      setLoading(false);
+    void loadTasks().then(() => {
+      const q = query(
+        collection(db, "timeEntries"),
+        where("userId", "==", profile.uid),
+        where("status", "==", "running"),
+        limit(1)
+      );
+      unsub = onSnapshot(q, (snap) => {
+        setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
+        setLoading(false);
+      });
     });
-    return unsub;
+
+    return () => unsub?.();
   }, [profile, loadTasks]);
 
   const runningTask = runningEntry ? tasks.find((t) => t.id === runningEntry.taskId) : null;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { Save, X } from "lucide-react";
-import { calculateAmountCents, formatCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
+import { calculateAmountCents, calculateTotalAmountCents, formatCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -57,10 +57,15 @@ export function InvoiceEditForm({
     return calculateAmountCents(Math.round(hours * 3600), item.hourlyRateCents);
   }
 
-  const previewTotal = items.reduce((sum, item) => {
-    const amt = computedAmount(item);
-    return amt !== null ? sum + amt : sum;
-  }, 0);
+  const previewTotal = calculateTotalAmountCents(
+    items
+      .map((item) => {
+        const hours = parseFloat(item.hoursInput);
+        if (!Number.isFinite(hours) || hours <= 0) return null;
+        return { durationSeconds: Math.round(hours * 3600), hourlyRateCents: item.hourlyRateCents };
+      })
+      .filter((item): item is { durationSeconds: number; hourlyRateCents: number } => item !== null)
+  );
 
   async function handleSave() {
     setError(null);

@@ -1,5 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { calculateAmountCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
+import { calculateAmountCents, calculateTotalAmountCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
 import { adminDb } from "@/lib/firebase/admin";
 import { jsonError, requireRole } from "@/lib/firebase/auth";
 import { COLLECTIONS } from "@/lib/firebase/firestore";
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
 
       const invoiceData = invoiceSnap.data()!;
 
-      if (invoiceData.status !== "draft") {
-        throw new Response("Only draft invoices can be edited.", { status: 409 });
+      if (invoiceData.status !== "unpaid") {
+        throw new Response("Only unpaid invoices can be edited.", { status: 409 });
       }
 
       const existingLineItems = (invoiceData.lineItems ?? []) as InvoiceLineItem[];
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         };
       });
 
-      const subtotalCents = updatedLineItems.reduce((sum, li) => sum + li.amountCents, 0);
+      const subtotalCents = calculateTotalAmountCents(updatedLineItems);
       const totalCents = subtotalCents;
 
       // Calendar summary deltas for changed amounts and durations

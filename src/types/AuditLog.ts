@@ -11,6 +11,7 @@ export type AuditAction =
   | "timeEntry.updated"
   | "timeEntry.stopped"
   | "task.upserted"
+  | "project.upserted"
   | "user.roleChanged";
 
 export type AuditLog = {

@@ -79,9 +79,9 @@
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--border);
-  background: rgba(9, 10, 11, 0.82);
+  background: rgba(6, 10, 22, 0);
   padding: 18px 24px;
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(24px) saturate(300%);
 }
 
 .topbar-brand-block {

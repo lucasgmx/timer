@@ -15,6 +15,7 @@ export type AuthenticatedUser = {
   displayName?: string | null;
   role: UserRole;
   active: boolean;
+  defaultHourlyRateCents?: number | null;
 };
 
 function parseEmailList(value: string | undefined) {
@@ -67,7 +68,8 @@ export async function getAuthenticatedUser(request: Request): Promise<Authentica
       email,
       displayName: user?.displayName ?? decodedToken.name ?? username,
       role,
-      active: true
+      active: true,
+      defaultHourlyRateCents: typeof user?.defaultHourlyRateCents === "number" ? user.defaultHourlyRateCents : null
     };
   }
 

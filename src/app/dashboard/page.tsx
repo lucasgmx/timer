@@ -9,7 +9,7 @@ import {
   query,
   where
 } from "firebase/firestore";
-import { Receipt, Pencil } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
@@ -60,15 +60,6 @@ function formatDateRange(start: string, end: string) {
   return `${startFmt} – ${endFmt}`;
 }
 
-function formatTime(date: Date | null | undefined) {
-  if (!date) return "—";
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true
-  }).toLowerCase();
-}
-
 function formatShortDuration(totalSeconds: number) {
   const safe = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(safe / 3600);
@@ -94,9 +85,9 @@ export default function DashboardPage() {
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [detailEntry, setDetailEntry] = useState<TimeEntry | null>(null);
   const [detailTaskId, setDetailTaskId] = useState("");
-  const [detailDateKey, setDetailDateKey] = useState("");
-  const [detailHours, setDetailHours] = useState("");
   const [detailDescription, setDetailDescription] = useState("");
+  const [detailStartDatetime, setDetailStartDatetime] = useState("");
+  const [detailEndDatetime, setDetailEndDatetime] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -205,20 +196,36 @@ export default function DashboardPage() {
     [entries]
   );
 
+  function dateToDatetimeLocal(date: Date): string {
+    const y = date.getFullYear();
+    const mo = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    return `${y}-${mo}-${d}T${h}:${min}`;
+  }
+
   function openDetail(entry: TimeEntry) {
     setDetailEntry(entry);
     setDetailTaskId(entry.taskId);
-    setDetailDateKey(entry.dateKey);
-    setDetailHours((entry.durationSeconds / 3600).toFixed(2));
+    setDetailStartDatetime(dateToDatetimeLocal(entry.startTime));
+    const entryEnd = entry.endTime ?? new Date(entry.startTime.getTime() + entry.durationSeconds * 1000);
+    setDetailEndDatetime(dateToDatetimeLocal(entryEnd));
     setDetailDescription(entry.description ?? "");
     setDetailError(null);
   }
 
   async function handleDetailSave() {
     if (!detailEntry) return;
-    const parsedHours = Number(detailHours);
-    if (!Number.isFinite(parsedHours) || parsedHours <= 0) {
-      setDetailError("Enter a positive duration.");
+    const startDt = new Date(detailStartDatetime);
+    const endDt = new Date(detailEndDatetime);
+    const durationSeconds = Math.round((endDt.getTime() - startDt.getTime()) / 1000);
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      setDetailError("End time must be after start time.");
+      return;
+    }
+    if (durationSeconds > 60 * 60 * 24) {
+      setDetailError("Duration cannot exceed 24 hours.");
       return;
     }
     setDetailBusy(true);
@@ -231,8 +238,10 @@ export default function DashboardPage() {
         body: JSON.stringify({
           id: detailEntry.id,
           taskId: detailTaskId,
-          dateKey: detailDateKey,
-          durationSeconds: Math.round(parsedHours * 3600),
+          dateKey: detailStartDatetime.substring(0, 10),
+          durationSeconds,
+          startTime: startDt.toISOString(),
+          endTime: endDt.toISOString(),
           description: detailDescription
         })
       });
@@ -265,7 +274,7 @@ export default function DashboardPage() {
       });
       if (!response.ok) throw new Error(await response.text());
       const result = (await response.json()) as { id: string };
-      router.push(`/invoices/${result.id}`);
+      router.push(`/invoices/${result.id}?edit=true`);
     } catch (e) {
       setInvoiceError(e instanceof Error ? e.message : "Failed to generate invoice.");
       setInvoicing(false);
@@ -310,9 +319,6 @@ export default function DashboardPage() {
                 </button>
               ) : null}
               {invoiceError ? <div className="error-state">{invoiceError}</div> : null}
-              {!loading && entries.length === 0 ? (
-                <div className="empty-state">No uninvoiced entries in this range.</div>
-              ) : null}
             </div>
           </Card>
 
@@ -326,33 +332,19 @@ export default function DashboardPage() {
         <Card title="Time entries">
           {loading ? (
             <div className="loading-state">Loading entries…</div>
-          ) : entries.length === 0 ? (
-            <div className="empty-state">No uninvoiced entries in this range.</div>
           ) : (
             <div className="entry-list">
               {entries.map((entry) => {
                 const task = tasks.find((t) => t.id === entry.taskId);
                 return (
-                  <div key={entry.id} className="entry-row">
-                    <button
-                      className="entry-task-btn"
-                      onClick={() => openDetail(entry)}
-                    >
+                  <button key={entry.id} className="entry-row" onClick={() => openDetail(entry)}>
+                    <span className="entry-task-btn">
                       {task?.title ?? "Task"}
-                    </button>
+                    </span>
                     <div className="entry-meta">
                       <strong className="entry-duration mono-number">{formatShortDuration(entry.durationSeconds)}</strong>
                     </div>
-                    <div className="entry-actions">
-                      <button
-                        className="entry-edit-btn"
-                        title="Edit entry"
-                        onClick={() => openDetail(entry)}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -364,16 +356,14 @@ export default function DashboardPage() {
           return (
             <div className="entry-detail-overlay" onClick={() => setDetailEntry(null)}>
               <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
-                <div className="entry-detail-times">
-                  <div className="entry-detail-time-block">
-                    <span className="fine-print">Started</span>
-                    <span className="mono-number">{formatTime(detailEntry.startTime)}</span>
-                    <span className="entry-detail-date">{detailEntry.startTime ? detailEntry.startTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</span>
+                <div className="entry-detail-cluster">
+                  <div className="field">
+                    <label htmlFor="detail-start">Start</label>
+                    <Input id="detail-start" type="datetime-local" value={detailStartDatetime} onChange={(e) => setDetailStartDatetime(e.target.value)} />
                   </div>
-                  <div className="entry-detail-time-block">
-                    <span className="fine-print">Ended</span>
-                    <span className="mono-number">{formatTime(detailEntry.endTime)}</span>
-                    <span className="entry-detail-date">{detailEntry.endTime ? detailEntry.endTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</span>
+                  <div className="field">
+                    <label htmlFor="detail-end">End</label>
+                    <Input id="detail-end" type="datetime-local" value={detailEndDatetime} onChange={(e) => setDetailEndDatetime(e.target.value)} />
                   </div>
                 </div>
                 <div className="entry-detail-divider" />
@@ -384,16 +374,6 @@ export default function DashboardPage() {
                       <option key={t.id} value={t.id}>{t.title}</option>
                     ))}
                   </Select>
-                </div>
-                <div className="entry-detail-cluster">
-                  <div className="field">
-                    <label htmlFor="detail-date">Date</label>
-                    <Input id="detail-date" type="date" value={detailDateKey} onChange={(e) => setDetailDateKey(e.target.value)} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="detail-hours">Hours</label>
-                    <Input id="detail-hours" type="number" min="0.01" step="0.01" value={detailHours} onChange={(e) => setDetailHours(e.target.value)} />
-                  </div>
                 </div>
                 <div className="field">
                   <label htmlFor="detail-desc">Description</label>

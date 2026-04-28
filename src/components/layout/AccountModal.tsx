@@ -2,7 +2,7 @@
 
 import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
-import { Fingerprint, KeyRound, Loader2, Trash2, X } from "lucide-react";
+import { DollarSign, Fingerprint, KeyRound, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function AccountModal({ onClose }: Props) {
-  const { getToken } = useAuth();
+  const { getToken, profile, refreshProfile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const [passkeys, setPasskeys] = useState<PasskeyRow[]>([]);
@@ -33,6 +33,14 @@ export function AccountModal({ onClose }: Props) {
   const [pwBusy, setPwBusy] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState(false);
+
+  const [rateInput, setRateInput] = useState(() => {
+    const cents = profile?.defaultHourlyRateCents;
+    return cents != null ? (cents / 100).toFixed(2) : "";
+  });
+  const [rateBusy, setRateBusy] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [rateSuccess, setRateSuccess] = useState(false);
 
   const loadPasskeys = useCallback(async () => {
     setLoadingPasskeys(true);
@@ -137,6 +145,39 @@ export function AccountModal({ onClose }: Props) {
     }
   }
 
+  async function saveRate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRateError(null);
+    setRateSuccess(false);
+
+    const parsed = parseFloat(rateInput);
+    if (isNaN(parsed) || parsed < 0) {
+      setRateError("Enter a valid rate.");
+      return;
+    }
+    const cents = Math.round(parsed * 100);
+
+    setRateBusy(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/user/update-rate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ defaultHourlyRateCents: cents })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await refreshProfile();
+      setRateSuccess(true);
+    } catch (err) {
+      setRateError(err instanceof Error ? err.message : "Failed to save rate.");
+    } finally {
+      setRateBusy(false);
+    }
+  }
+
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPwError(null);
@@ -187,6 +228,33 @@ export function AccountModal({ onClose }: Props) {
             <X size={16} />
           </button>
         </div>
+
+        {/* Default rate section */}
+        <section className="account-section">
+          <div className="account-section-heading">
+            <DollarSign size={15} />
+            Default hourly rate
+          </div>
+          <form className="account-pw-form" onSubmit={(e) => void saveRate(e)}>
+            <div className="field">
+              <label htmlFor="acc-rate">Rate (USD/hr)</label>
+              <Input
+                id="acc-rate"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={rateInput}
+                onChange={(e) => { setRateInput(e.target.value); setRateSuccess(false); }}
+              />
+            </div>
+            {rateError ? <div className="account-error">{rateError}</div> : null}
+            {rateSuccess ? <div className="account-success">Rate saved.</div> : null}
+            <Button type="submit" variant="primary" disabled={rateBusy}>
+              {rateBusy ? "Saving…" : "Save rate"}
+            </Button>
+          </form>
+        </section>
 
         {/* Passkeys section */}
         <section className="account-section">

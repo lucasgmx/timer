@@ -1,9 +1,10 @@
 "use client";
 
 import { doc, getDoc } from "firebase/firestore";
-import { Send, Ban, CheckCircle2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { Send, Ban, CheckCircle2, Pencil } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { InvoiceEditForm } from "@/components/invoices/InvoiceEditForm";
 import { InvoicePreview } from "@/components/invoices/InvoicePreview";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -15,11 +16,14 @@ import type { Invoice } from "@/types";
 
 export default function InvoiceDetailPage() {
   const params = useParams<{ invoiceId: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { getToken, profile } = useAuth();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(() => searchParams.get("edit") === "true");
 
   const loadInvoice = useCallback(async () => {
     setLoading(true);
@@ -71,6 +75,28 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  async function handleSaveLineItems(
+    lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[]
+  ) {
+    const token = await getToken();
+    const response = await fetch("/api/invoices/update-line-items", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ invoiceId: params.invoiceId, lineItems })
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    await loadInvoice();
+    setEditMode(false);
+    router.replace(`/invoices/${params.invoiceId}`);
+  }
+
   return (
     <AppShell>
       <main className="page page-grid">
@@ -79,8 +105,17 @@ export default function InvoiceDetailPage() {
             <div className="eyebrow">invoice</div>
             <h1 className="page-title">{invoice?.invoiceNumber ?? "Invoice"}</h1>
           </div>
-          {profile?.role === "admin" && invoice ? (
+          {profile?.role === "admin" && invoice && !editMode ? (
             <div className="cluster">
+              {invoice.status === "draft" ? (
+                <Button
+                  icon={<Pencil />}
+                  onClick={() => setEditMode(true)}
+                  disabled={busy}
+                >
+                  Edit
+                </Button>
+              ) : null}
               <Button
                 icon={<Send />}
                 disabled={busy || invoice.status === "paid" || invoice.status === "void"}
@@ -110,7 +145,18 @@ export default function InvoiceDetailPage() {
 
         {loading ? <div className="loading-state">Loading invoice...</div> : null}
         {error ? <div className="error-state">{error}</div> : null}
-        {invoice ? <InvoicePreview invoice={invoice} /> : null}
+        {invoice && editMode ? (
+          <InvoiceEditForm
+            invoice={invoice}
+            onSave={handleSaveLineItems}
+            onCancel={() => {
+              setEditMode(false);
+              router.replace(`/invoices/${params.invoiceId}`);
+            }}
+          />
+        ) : invoice ? (
+          <InvoicePreview invoice={invoice} />
+        ) : null}
         {!loading && !invoice && !error ? (
           <Card>
             <div className="empty-state">Invoice not found.</div>

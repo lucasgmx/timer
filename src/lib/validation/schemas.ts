@@ -25,7 +25,9 @@ export const timeEntryUpdateSchema = z.object({
   taskId: nonEmptyIdSchema,
   description: z.string().trim().max(500).optional(),
   dateKey: dateKeySchema,
-  durationSeconds: z.number().int().positive().max(60 * 60 * 24)
+  durationSeconds: z.number().int().positive().max(60 * 60 * 24),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional()
 });
 
 export const dateRangeSchema = z
@@ -46,6 +48,24 @@ export const generateInvoiceSchema = z.object({
 
 export const invoiceStatusSchema = z.object({
   invoiceId: nonEmptyIdSchema
+});
+
+export const updateInvoiceLineItemsSchema = z.object({
+  invoiceId: nonEmptyIdSchema,
+  lineItems: z
+    .array(
+      z.object({
+        timeEntryId: nonEmptyIdSchema,
+        taskTitle: z.string().trim().min(1).max(160),
+        durationSeconds: z.number().int().positive().max(60 * 60 * 24 * 7)
+      })
+    )
+    .min(1)
+    .max(200)
+});
+
+export const updateDefaultRateSchema = z.object({
+  defaultHourlyRateCents: z.number().int().nonnegative().max(1_000_000)
 });
 
 export const taskUpsertSchema = z.object({

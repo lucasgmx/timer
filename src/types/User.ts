@@ -8,6 +8,7 @@ export type AppUser = {
   role: UserRole;
   active: boolean;
   runningTimeEntryId?: string | null;
+  defaultHourlyRateCents?: number | null;
   createdAt: Date;
   updatedAt: Date;
 };

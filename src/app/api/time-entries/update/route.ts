@@ -35,11 +35,12 @@ export async function POST(request: Request) {
 
       if (!body.id) {
         const ref = db.collection(COLLECTIONS.timeEntries).doc();
-        const startDate = dateKeyToDate(body.dateKey);
-        const startTime = Timestamp.fromDate(startDate);
-        const endTime = Timestamp.fromMillis(
-          startTime.toMillis() + body.durationSeconds * 1000
-        );
+        const startTime = body.startTime
+          ? Timestamp.fromDate(new Date(body.startTime))
+          : Timestamp.fromDate(dateKeyToDate(body.dateKey));
+        const endTime = body.endTime
+          ? Timestamp.fromDate(new Date(body.endTime))
+          : Timestamp.fromMillis(startTime.toMillis() + body.durationSeconds * 1000);
 
         await applyCalendarSummaryDelta(transaction, db, body.dateKey, actor.uid, {
           totalDurationSeconds: body.durationSeconds,
@@ -99,11 +100,12 @@ export async function POST(request: Request) {
         throw new Response("Invoiced or running entries cannot be edited.", { status: 409 });
       }
 
-      const startDate = dateKeyToDate(body.dateKey);
-      const startTime = Timestamp.fromDate(startDate);
-      const endTime = Timestamp.fromMillis(
-        startTime.toMillis() + body.durationSeconds * 1000
-      );
+      const startTime = body.startTime
+        ? Timestamp.fromDate(new Date(body.startTime))
+        : Timestamp.fromDate(dateKeyToDate(body.dateKey));
+      const endTime = body.endTime
+        ? Timestamp.fromDate(new Date(body.endTime))
+        : Timestamp.fromMillis(startTime.toMillis() + body.durationSeconds * 1000);
 
       await applyCalendarSummaryDeltas(transaction, db, [
         {

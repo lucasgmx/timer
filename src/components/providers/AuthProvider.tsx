@@ -27,6 +27,7 @@ type SessionProfile = {
   displayName?: string | null;
   role: UserRole;
   active: boolean;
+  defaultHourlyRateCents?: number | null;
 };
 
 type AuthContextValue = {

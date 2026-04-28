@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         if (!taskSnap?.exists || taskSnap.data()?.status === "archived") {
           throw new Response("Task is not available.", { status: 400 });
         }
-        hourlyRateCentsSnapshot = Number(taskSnap.data()?.hourlyRateCentsOverride ?? 0);
+        hourlyRateCentsSnapshot = Number(taskSnap.data()?.hourlyRateCentsOverride ?? actor.defaultHourlyRateCents ?? 0);
         resolvedTaskId = body.taskId;
       } else {
         // New task path — create it inside this transaction
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           hourlyRateCentsOverride: null,
           status: "active"
         });
-        hourlyRateCentsSnapshot = 0;
+        hourlyRateCentsSnapshot = actor.defaultHourlyRateCents ?? 0;
         resolvedTaskId = taskRef.id;
       }
 

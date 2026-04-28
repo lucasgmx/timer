@@ -2,6 +2,7 @@ import type { UserRole } from "./User";
 
 export type AuditAction =
   | "invoice.created"
+  | "invoice.lineItemsEdited"
   | "invoice.sent"
   | "invoice.paid"
   | "invoice.voided"

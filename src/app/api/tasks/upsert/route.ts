@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         ? db.collection(COLLECTIONS.tasks).doc(body.id)
         : db.collection(COLLECTIONS.tasks).doc();
       const existing = await transaction.get(ref);
-      const previousRate = existing.data()?.hourlyRateCentsOverride;
+      const previousRate = existing.data()?.hourlyRateCentsOverride ?? null;
 
       transaction.set(
         ref,

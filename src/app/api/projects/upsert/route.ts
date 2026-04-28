@@ -18,7 +18,7 @@ export async function POST(request: Request) {
         ? db.collection(COLLECTIONS.projects).doc(body.id)
         : db.collection(COLLECTIONS.projects).doc();
       const existing = await transaction.get(ref);
-      const previousRate = existing.data()?.defaultHourlyRateCents;
+      const previousRate = existing.data()?.defaultHourlyRateCents ?? null;
 
       transaction.set(
         ref,

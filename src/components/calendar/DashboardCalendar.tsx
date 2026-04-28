@@ -104,8 +104,8 @@ export function DashboardCalendar({
         </button>
       </div>
       <div className="dash-cal-grid">
-        {DOW_LABELS.map((dow) => (
-          <div key={dow} className="cal-dow-label">
+        {DOW_LABELS.map((dow, dowIdx) => (
+          <div key={dow} className="cal-dow-label" data-weekend={dowIdx === 0 || dowIdx === 6 || undefined}>
             {dow}
           </div>
         ))}
@@ -118,6 +118,8 @@ export function DashboardCalendar({
           const isEndpoint = dateKey === range.start || dateKey === range.end;
           const summary = byDate.get(dateKey);
           const status = summary?.status;
+          const col = idx % 7;
+          const isWeekend = col === 0 || col === 6;
           return (
             <button
               key={dateKey}
@@ -126,6 +128,7 @@ export function DashboardCalendar({
               data-in-range={inRange || undefined}
               data-endpoint={isEndpoint || undefined}
               data-status={status}
+              data-weekend={isWeekend || undefined}
               onClick={() => handleDayClick(dateKey)}
               title={dateKey}
             >

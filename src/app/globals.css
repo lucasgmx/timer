@@ -82,7 +82,7 @@ a {
 }
 
 .page-grid.two {
-  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  grid-template-columns: minmax(0, 0.75fr) minmax(340px, 1.25fr);
   align-items: start;
 }
 
@@ -347,7 +347,8 @@ a {
 
 .dash-calendar {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  max-width: 252px;
 }
 
 .dash-cal-nav {
@@ -390,13 +391,17 @@ a {
 }
 
 .cal-dow-label {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 700;
   color: var(--muted-2);
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 2px 0;
+}
+
+.cal-dow-label[data-weekend] {
+  color: rgba(255, 142, 142, 0.55);
 }
 
 .cal-pad {
@@ -410,14 +415,19 @@ a {
   justify-content: center;
   gap: 1px;
   aspect-ratio: 1;
-  min-height: 28px;
+  min-height: 22px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   padding: 1px;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.cal-day-btn[data-weekend] {
+  color: rgba(255, 142, 142, 0.5);
+  background: rgba(255, 142, 142, 0.03);
 }
 
 .cal-day-btn:hover {
@@ -431,9 +441,18 @@ a {
   font-weight: 700;
 }
 
+.cal-day-btn[data-weekend][data-today] {
+  color: var(--green);
+}
+
 .cal-day-btn[data-in-range] {
   background: rgba(140, 232, 173, 0.08);
   color: var(--text);
+}
+
+.cal-day-btn[data-weekend][data-in-range] {
+  background: rgba(255, 142, 142, 0.07);
+  color: rgba(255, 200, 200, 0.85);
 }
 
 .cal-day-btn[data-endpoint] {
@@ -464,7 +483,7 @@ a {
 }
 
 .cal-day-hours {
-  font-size: 0.55rem;
+  font-size: 0.52rem;
   color: var(--muted-2);
   line-height: 1;
 }

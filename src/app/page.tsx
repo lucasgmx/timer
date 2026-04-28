@@ -6,6 +6,7 @@ import Image from "next/image";
 import Script from "next/script";
 import { LogIn } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import MatrixRain from "@/components/MatrixRain";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -13,8 +14,10 @@ import { Input } from "@/components/ui/Input";
 declare global {
   interface Window {
     grecaptcha: {
-      ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      enterprise: {
+        ready: (callback: () => void) => void;
+        execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      };
     };
   }
 }
@@ -32,6 +35,7 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_SITE_KEY);
 
   useEffect(() => {
     if (!loading && user && profile) {
@@ -46,9 +50,12 @@ export default function HomePage() {
 
     try {
       if (RECAPTCHA_SITE_KEY) {
+        if (!recaptchaLoaded || !window.grecaptcha?.enterprise) {
+          throw new Error("Security check is not ready. Please wait a moment and try again.");
+        }
         const token = await new Promise<string>((resolve, reject) => {
-          window.grecaptcha.ready(() => {
-            window.grecaptcha
+          window.grecaptcha.enterprise.ready(() => {
+            window.grecaptcha.enterprise
               .execute(RECAPTCHA_SITE_KEY, { action: "login" })
               .then(resolve)
               .catch(reject);
@@ -78,16 +85,18 @@ export default function HomePage() {
 
   return (
     <main className="login-screen">
+      <MatrixRain />
       {RECAPTCHA_SITE_KEY && (
         <Script
-          src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+          src={`https://www.google.com/recaptcha/enterprise.js?render=${RECAPTCHA_SITE_KEY}`}
           strategy="afterInteractive"
+          onLoad={() => setRecaptchaLoaded(true)}
         />
       )}
-      <div className="login-logo">
+      <div className="login-logo" style={{ position: "relative", zIndex: 1 }}>
         <Image src="/logo_white.png" alt="Timer" width={360} height={51} priority style={{ width: "100%", height: "auto" }} />
       </div>
-      <Card className="login-card">
+      <Card className="login-card" style={{ position: "relative", zIndex: 1 }}>
         <h2 className="login-title">
           <span className="login-title-accent">timer</span>
           <span className="login-title-dot">.</span>
@@ -121,7 +130,7 @@ export default function HomePage() {
           {error || formError ? (
             <div className="error-state">{formError ?? error}</div>
           ) : null}
-          <Button type="submit" variant="primary" icon={submitting ? undefined : <LogIn />} disabled={submitting}>
+          <Button type="submit" variant="primary" icon={submitting ? undefined : <LogIn />} disabled={submitting || !recaptchaLoaded}>
             {submitting ? (
               <span className="login-spinner-row"><span className="login-spinner" aria-hidden="true" />Signing in...</span>
             ) : "Sign in"}

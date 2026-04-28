@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDocument() {
+      return signedIn() && exists(currentUserPath());
+    }
+
+    function currentUser() {
+      return get(currentUserPath()).data;
+    }
+
+    function activeUser() {
+      return hasUserDocument() && currentUser().active == true;
+    }
+
+    function adminUser() {
+      return activeUser() && currentUser().role == "admin";
+    }
+
+    function owns(userId) {
+      return activeUser() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if adminUser() || owns(userId);
+      allow create, update, delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if activeUser();
+      allow create, update, delete: if false;
+    }
+
+    match /tasks/{taskId} {
+      allow read: if activeUser();
+      allow create, update, delete: if false;
+    }
+
+    match /timeEntries/{entryId} {
+      allow read: if adminUser() || owns(resource.data.userId);
+      allow create, update, delete: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if activeUser();
+      allow create, update, delete: if false;
+    }
+
+    match /invoiceCounters/{counterId} {
+      allow read, write: if false;
+    }
+
+    match /calendarDaySummaries/{summaryId} {
+      allow read: if adminUser()
+        || (activeUser()
+          && resource.data.scope == "user"
+          && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if adminUser();
+      allow create, update, delete: if false;
+    }
+  }
+}

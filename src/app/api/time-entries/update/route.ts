@@ -1,0 +1,182 @@
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { calculateAmountCents } from "@/lib/billing/formatDuration";
+import { dateKeyToDate } from "@/lib/dates/dateKeys";
+import { adminDb } from "@/lib/firebase/admin";
+import { getAuthenticatedUser, jsonError } from "@/lib/firebase/auth";
+import { COLLECTIONS } from "@/lib/firebase/firestore";
+import {
+  applyCalendarSummaryDelta,
+  applyCalendarSummaryDeltas,
+  writeAuditLog
+} from "@/lib/firebase/serverWrites";
+import { timeEntryUpdateSchema } from "@/lib/validation/schemas";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  try {
+    const actor = await getAuthenticatedUser(request);
+    const body = timeEntryUpdateSchema.parse(await request.json());
+    const db = adminDb();
+
+    const result = await db.runTransaction(async (transaction) => {
+      const projectRef = db.collection(COLLECTIONS.projects).doc(body.projectId);
+      const taskRef = db.collection(COLLECTIONS.tasks).doc(body.taskId);
+      const [projectSnap, taskSnap] = await Promise.all([
+        transaction.get(projectRef),
+        transaction.get(taskRef)
+      ]);
+
+      if (!projectSnap.exists || projectSnap.data()?.status === "archived") {
+        throw new Response("Project is not available.", { status: 400 });
+      }
+
+      if (!taskSnap.exists || taskSnap.data()?.status === "archived") {
+        throw new Response("Task is not available.", { status: 400 });
+      }
+
+      if (taskSnap.data()?.projectId !== body.projectId) {
+        throw new Response("Task does not belong to the selected project.", { status: 400 });
+      }
+
+      const hourlyRateCentsSnapshot = Number(
+        taskSnap.data()?.hourlyRateCentsOverride ??
+          projectSnap.data()?.defaultHourlyRateCents ??
+          0
+      );
+      const amountCentsSnapshot = calculateAmountCents(
+        body.durationSeconds,
+        hourlyRateCentsSnapshot
+      );
+
+      if (!body.id) {
+        const ref = db.collection(COLLECTIONS.timeEntries).doc();
+        const startDate = dateKeyToDate(body.dateKey);
+        const startTime = Timestamp.fromDate(startDate);
+        const endTime = Timestamp.fromMillis(
+          startTime.toMillis() + body.durationSeconds * 1000
+        );
+
+        await applyCalendarSummaryDelta(transaction, db, body.dateKey, actor.uid, {
+          totalDurationSeconds: body.durationSeconds,
+          uninvoicedAmountCents: amountCentsSnapshot
+        });
+
+        transaction.set(ref, {
+          userId: actor.uid,
+          taskId: body.taskId,
+          projectId: body.projectId,
+          description: body.description ?? "",
+          startTime,
+          endTime,
+          durationSeconds: body.durationSeconds,
+          hourlyRateCentsSnapshot,
+          amountCentsSnapshot,
+          status: "completed",
+          invoiceId: null,
+          invoiceStatusSnapshot: null,
+          dateKey: body.dateKey,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        writeAuditLog(
+          transaction,
+          db,
+          actor,
+          "timeEntry.created",
+          COLLECTIONS.timeEntries,
+          ref.id,
+          {
+            durationSeconds: body.durationSeconds,
+            amountCentsSnapshot
+          }
+        );
+
+        return {
+          id: ref.id,
+          created: true
+        };
+      }
+
+      const ref = db.collection(COLLECTIONS.timeEntries).doc(body.id);
+      const snap = await transaction.get(ref);
+
+      if (!snap.exists) {
+        throw new Response("Time entry was not found.", { status: 404 });
+      }
+
+      const existing = snap.data();
+
+      if (existing?.userId !== actor.uid && actor.role !== "admin") {
+        throw new Response("Cannot edit another user's time entry.", { status: 403 });
+      }
+
+      if (existing?.status !== "completed" || existing?.invoiceId) {
+        throw new Response("Invoiced or running entries cannot be edited.", { status: 409 });
+      }
+
+      const startDate = dateKeyToDate(body.dateKey);
+      const startTime = Timestamp.fromDate(startDate);
+      const endTime = Timestamp.fromMillis(
+        startTime.toMillis() + body.durationSeconds * 1000
+      );
+
+      await applyCalendarSummaryDeltas(transaction, db, [
+        {
+          dateKey: existing.dateKey,
+          userId: existing.userId,
+          delta: {
+            totalDurationSeconds: -Number(existing.durationSeconds ?? 0),
+            uninvoicedAmountCents: -Number(existing.amountCentsSnapshot ?? 0)
+          }
+        },
+        {
+          dateKey: body.dateKey,
+          userId: existing.userId,
+          delta: {
+            totalDurationSeconds: body.durationSeconds,
+            uninvoicedAmountCents: amountCentsSnapshot
+          }
+        }
+      ]);
+
+      transaction.update(ref, {
+        taskId: body.taskId,
+        projectId: body.projectId,
+        description: body.description ?? "",
+        startTime,
+        endTime,
+        durationSeconds: body.durationSeconds,
+        hourlyRateCentsSnapshot,
+        amountCentsSnapshot,
+        dateKey: body.dateKey,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      writeAuditLog(
+        transaction,
+        db,
+        actor,
+        "timeEntry.updated",
+        COLLECTIONS.timeEntries,
+        body.id,
+        {
+          totalDurationSeconds: -Number(existing.durationSeconds ?? 0),
+          previousDurationSeconds: existing.durationSeconds,
+          durationSeconds: body.durationSeconds,
+          amountCentsSnapshot
+        }
+      );
+
+      return {
+        id: body.id,
+        created: false
+      };
+    });
+
+    return Response.json(result);
+  } catch (error) {
+    return jsonError(error);
+  }
+}

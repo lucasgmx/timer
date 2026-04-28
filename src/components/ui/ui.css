@@ -1,0 +1,158 @@
+.ui-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    var(--surface);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.ui-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ui-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.ui-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ui-button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: rgba(140, 232, 173, 0.08);
+  transform: translateY(-1px);
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.ui-button.primary {
+  border-color: rgba(140, 232, 173, 0.44);
+  background: rgba(140, 232, 173, 0.14);
+  color: var(--green);
+}
+
+.ui-button.danger {
+  border-color: rgba(255, 142, 142, 0.42);
+  color: var(--red);
+}
+
+.ui-button.ghost {
+  background: transparent;
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.ui-badge.green {
+  border-color: rgba(140, 232, 173, 0.36);
+  color: var(--green);
+}
+
+.ui-badge.cyan {
+  border-color: rgba(123, 223, 242, 0.36);
+  color: var(--cyan);
+}
+
+.ui-badge.amber {
+  border-color: rgba(240, 201, 106, 0.42);
+  color: var(--amber);
+}
+
+.ui-badge.blue {
+  border-color: rgba(138, 167, 255, 0.4);
+  color: var(--blue);
+}
+
+.ui-badge.red {
+  border-color: rgba(255, 142, 142, 0.42);
+  color: var(--red);
+}
+
+.ui-badge.gray {
+  color: var(--muted);
+}
+
+.ui-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.24);
+  outline: none;
+}
+
+.ui-input:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(140, 232, 173, 0.08);
+}
+
+.ui-textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.ui-table-wrap {
+  overflow-x: auto;
+}
+
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.ui-table th,
+.ui-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 11px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ui-table th {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ui-table td.numeric,
+.ui-table th.numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

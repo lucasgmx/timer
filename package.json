@@ -1,0 +1,35 @@
+{
+  "name": "timer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal time tracking and invoicing platform for marques.llc.",
+  "scripts": {
+    "dev": "next dev -p 6001",
+    "build": "next build",
+    "start": "next start -p 6001",
+    "user:create": "node scripts/create-user.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "firebase": "^12.12.1",
+    "firebase-admin": "^13.8.0",
+    "lucide-react": "^1.11.0",
+    "next": "^16.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^16.2.4",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "@tootallnate/once": "^3.0.1",
+    "postcss": "^8.5.12"
+  }
+}

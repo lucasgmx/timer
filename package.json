@@ -4,7 +4,7 @@
   "private": true,
   "description": "Internal time tracking and invoicing platform for marques.llc.",
   "scripts": {
-    "dev": "next dev -p 6001",
+    "dev": "sudo kill -9 $(sudo lsof -t -i:6001) 2>/dev/null; next dev -p 6001",
     "build": "next build",
     "start": "next start -p 6001",
     "user:create": "node scripts/create-user.mjs",

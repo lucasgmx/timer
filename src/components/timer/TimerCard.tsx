@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStopwatch } from "@fortawesome/free-solid-svg-icons";
 import { Play, Square } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
@@ -66,7 +68,6 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
       id: optimisticId,
       userId: "",
       taskId: taskForDisplay.id,
-      description: "",
       startTime: optimisticStart,
       endTime: null,
       durationSeconds: 0,
@@ -123,7 +124,7 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
     : null;
 
   return (
-    <Card title={effectiveRunningEntry ? "Timer running" : "Start tracking"} className={effectiveRunningEntry ? "timer-running" : ""}>
+    <Card title={effectiveRunningEntry ? "Timer running" : "Start tracking"} icon={<FontAwesomeIcon icon={faStopwatch} />} className={effectiveRunningEntry ? "timer-running" : ""}>
       <div className="stack">
         {effectiveRunningEntry ? (
           <>
@@ -144,14 +145,8 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
           <>
             <div className="field">
               <label htmlFor="timer-task">Task</label>
-              <datalist id="timer-task-list">
-                {activeTasks.map((task) => (
-                  <option key={task.id} value={task.title} />
-                ))}
-              </datalist>
               <Input
                 id="timer-task"
-                list="timer-task-list"
                 value={taskInput}
                 onChange={(event) => setTaskInput(event.target.value)}
                 placeholder="Type a task name…"

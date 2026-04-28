@@ -6,7 +6,6 @@ export type TimeEntry = {
   id: string;
   userId: string;
   taskId: string;
-  description?: string;
   startTime: Date;
   endTime?: Date | null;
   durationSeconds: number;

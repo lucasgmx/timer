@@ -42,6 +42,21 @@
   border-bottom: 1px solid var(--border);
 }
 
+.ui-card-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ui-card-icon {
+  display: flex;
+  align-items: center;
+  color: var(--green);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
 .ui-button {
   display: inline-flex;
   min-height: 38px;
@@ -179,7 +194,7 @@
 .ui-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 680px;
+  min-width: 360px;
 }
 
 .ui-table th,
@@ -190,11 +205,16 @@
   vertical-align: middle;
 }
 
+.ui-table thead tr {
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .ui-table th {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
+  border-top: 1px solid var(--border);
 }
 
 .ui-table td.numeric,

@@ -5,7 +5,6 @@ export type InvoiceLineItem = {
   taskId: string;
   taskTitle: string;
   userId: string;
-  description?: string;
   dateKey: string;
   durationSeconds: number;
   hoursDecimal: number;

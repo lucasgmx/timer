@@ -2,12 +2,15 @@
 
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { Pencil, Save, X } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faListCheck, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
 import { db } from "@/lib/firebase/client";
 import { taskFromDoc } from "@/lib/firebase/clientConverters";
 import type { Task } from "@/types";
@@ -126,25 +129,40 @@ export default function SettingsPage() {
             {success ? <div className="success-state">Task created.</div> : null}
 
             {tasks.length > 0 ? (
-              <Card title="All tasks">
-                <div className="entry-list">
-                  {tasks.map((task) => (
-                    <button key={task.id} className="entry-row" onClick={() => openEdit(task)}>
-                      <span className="entry-task-btn">{task.title}</span>
-                      <div className="entry-meta">
-                        <span className="muted fine-print">
-                          {task.status === "archived" ? "archived · " : ""}
-                          ${((task.hourlyRateCentsOverride ?? 0) / 100).toFixed(2)}/hr
-                        </span>
-                        <Pencil size={14} className="muted" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
+              <Card title="All tasks" icon={<FontAwesomeIcon icon={faListCheck} />}>
+                <Table>
+                  <thead>
+                    <tr>
+                      <th>Task</th>
+                      <th className="numeric">Rate</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => (
+                      <tr key={task.id}>
+                        <td>{task.title}</td>
+                        <td className="numeric mono-number">${((task.hourlyRateCentsOverride ?? 0) / 100).toFixed(2)}/hr</td>
+                        <td>{task.status === "archived" ? <span className="muted">archived</span> : <span>active</span>}</td>
+                        <td className="numeric">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(task)}
+                            aria-label={`Edit ${task.title}`}
+                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--muted)", display: "inline-flex", alignItems: "center" }}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               </Card>
             ) : null}
 
-            <Card eyebrow="task" title="Create task">
+            <Card eyebrow="task" title="Create task" icon={<FontAwesomeIcon icon={faPlus} />}>
               <form className="form-grid" onSubmit={saveTask}>
                 <div className="field">
                   <label htmlFor="task-title">Title</label>

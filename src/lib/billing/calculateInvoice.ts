@@ -5,7 +5,6 @@ export type BillableTimeEntrySnapshot = {
   id: string;
   userId: string;
   taskId: string;
-  description?: string;
   dateKey: string;
   durationSeconds: number;
   hourlyRateCentsSnapshot?: number;
@@ -39,7 +38,6 @@ export function calculateInvoiceLineItems(
       taskId: entry.taskId,
       taskTitle: task.title,
       userId: entry.userId,
-      ...(entry.description !== undefined && { description: entry.description }),
       dateKey: entry.dateKey,
       durationSeconds: entry.durationSeconds,
       hoursDecimal: secondsToDecimalHours(entry.durationSeconds),

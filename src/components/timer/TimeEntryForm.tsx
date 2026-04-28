@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCalendarPlus, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { Save, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { todayDateKey } from "@/lib/dates/dateKeys";
 import type { Task, TimeEntry } from "@/types";
 
@@ -27,7 +29,6 @@ export function TimeEntryForm({
   const [taskId, setTaskId] = useState(activeTasks[0]?.id ?? "");
   const [dateKey, setDateKey] = useState(todayDateKey());
   const [hours, setHours] = useState("1.00");
-  const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,6 @@ export function TimeEntryForm({
       setTaskId(editingEntry.taskId);
       setDateKey(editingEntry.dateKey);
       setHours((editingEntry.durationSeconds / 3600).toFixed(2));
-      setDescription(editingEntry.description ?? "");
     }
   }, [editingEntry]);
 
@@ -69,8 +69,7 @@ export function TimeEntryForm({
           id: editingEntry?.id,
           taskId,
           dateKey,
-          durationSeconds: Math.round(parsedHours * 3600),
-          description
+          durationSeconds: Math.round(parsedHours * 3600)
         })
       });
 
@@ -79,7 +78,6 @@ export function TimeEntryForm({
       }
 
       setHours("1.00");
-      setDescription("");
       await onSaved();
     } catch (apiError) {
       setError(apiError instanceof Error ? apiError.message : "Unable to save entry.");
@@ -92,6 +90,7 @@ export function TimeEntryForm({
     <Card
       eyebrow="manual entry"
       title={editingEntry ? "Edit time entry" : "Add completed time"}
+      icon={<FontAwesomeIcon icon={editingEntry ? faPenToSquare : faCalendarPlus} />}
       action={
         editingEntry && onCancelEdit ? (
           <Button type="button" variant="ghost" icon={<X />} onClick={onCancelEdit}>
@@ -136,14 +135,6 @@ export function TimeEntryForm({
               onChange={(event) => setHours(event.target.value)}
             />
           </div>
-        </div>
-        <div className="field">
-          <label htmlFor="manual-description">Description</label>
-          <Textarea
-            id="manual-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
         </div>
         {error ? <div className="error-state">{error}</div> : null}
         <Button

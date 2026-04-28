@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { Save, X } from "lucide-react";
 import { calculateAmountCents, formatCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +19,6 @@ type EditableLineItem = {
   hourlyRateCents: number;
   dateKey: string;
   userId: string;
-  description?: string;
 };
 
 function toEditable(item: InvoiceLineItem): EditableLineItem {
@@ -27,8 +28,7 @@ function toEditable(item: InvoiceLineItem): EditableLineItem {
     hoursInput: secondsToDecimalHours(item.durationSeconds).toFixed(2),
     hourlyRateCents: item.hourlyRateCents,
     dateKey: item.dateKey,
-    userId: item.userId,
-    description: item.description
+    userId: item.userId
   };
 }
 
@@ -94,7 +94,7 @@ export function InvoiceEditForm({
   }
 
   return (
-    <Card eyebrow="editing" title={invoice.invoiceNumber}>
+    <Card eyebrow="editing" title={invoice.invoiceNumber} icon={<FontAwesomeIcon icon={faPenToSquare} />}>
       <div className="invoice-preview">
         <div className="split">
           <div>

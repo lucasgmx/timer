@@ -50,7 +50,6 @@ export async function POST(request: Request) {
         transaction.set(ref, {
           userId: actor.uid,
           taskId: body.taskId,
-          description: body.description ?? "",
           startTime,
           endTime,
           durationSeconds: body.durationSeconds,
@@ -128,7 +127,6 @@ export async function POST(request: Request) {
 
       transaction.update(ref, {
         taskId: body.taskId,
-        description: body.description ?? "",
         startTime,
         endTime,
         durationSeconds: body.durationSeconds,

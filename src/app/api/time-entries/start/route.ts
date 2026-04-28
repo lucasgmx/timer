@@ -85,7 +85,6 @@ export async function POST(request: Request) {
       transaction.set(timeEntryRef, {
         userId: actor.uid,
         taskId: resolvedTaskId,
-        description: body.description ?? "",
         startTime: FieldValue.serverTimestamp(),
         endTime: null,
         durationSeconds: 0,

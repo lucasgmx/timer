@@ -85,7 +85,7 @@ a {
 
 .page-grid.two {
   grid-template-columns: minmax(0, 0.75fr) minmax(340px, 1.25fr);
-  align-items: start;
+  align-items: stretch;
 }
 
 .stack {

@@ -9,8 +9,7 @@ export const nonEmptyIdSchema = z.string().trim().min(1).max(160);
 export const startTimerSchema = z
   .object({
     taskId: nonEmptyIdSchema.optional(),
-    taskTitle: z.string().trim().min(1).max(160).optional(),
-    description: z.string().trim().max(500).optional()
+    taskTitle: z.string().trim().min(1).max(160).optional()
   })
   .refine((data) => data.taskId || data.taskTitle, {
     message: "Either taskId or taskTitle must be provided."
@@ -23,7 +22,6 @@ export const stopTimerSchema = z.object({
 export const timeEntryUpdateSchema = z.object({
   id: nonEmptyIdSchema.optional(),
   taskId: nonEmptyIdSchema,
-  description: z.string().trim().max(500).optional(),
   dateKey: dateKeySchema,
   durationSeconds: z.number().int().positive().max(60 * 60 * 24),
   startTime: z.string().datetime().optional(),

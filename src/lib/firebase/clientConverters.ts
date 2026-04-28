@@ -34,7 +34,6 @@ export function timeEntryFromDoc(doc: DocumentSnapshot<DocumentData>): TimeEntry
     id: doc.id,
     userId: String(data.userId ?? ""),
     taskId: String(data.taskId ?? ""),
-    description: data.description ?? "",
     startTime: toDate(data.startTime),
     endTime: data.endTime ? toDate(data.endTime) : null,
     durationSeconds: Number(data.durationSeconds ?? 0),

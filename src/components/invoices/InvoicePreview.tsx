@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileInvoice } from "@fortawesome/free-solid-svg-icons";
 import { Card } from "@/components/ui/Card";
 import { formatCents } from "@/lib/billing/formatDuration";
 import type { Invoice } from "@/types";
@@ -11,7 +13,7 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
   const totalHours = invoice.lineItems.reduce((sum, item) => sum + item.hoursDecimal, 0);
 
   return (
-    <Card eyebrow="invoice detail" title={invoice.invoiceNumber}>
+    <Card eyebrow="invoice detail" title={invoice.invoiceNumber} icon={<FontAwesomeIcon icon={faFileInvoice} />}>
       <div className="invoice-preview">
         <div className="split">
           <div>

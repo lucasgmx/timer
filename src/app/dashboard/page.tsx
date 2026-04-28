@@ -9,6 +9,8 @@ import {
   query,
   where
 } from "firebase/firestore";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faClock, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
 import { Receipt } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,7 +21,7 @@ import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { formatCents, formatDuration } from "@/lib/billing/formatDuration";
 import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
@@ -85,9 +87,9 @@ export default function DashboardPage() {
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [detailEntry, setDetailEntry] = useState<TimeEntry | null>(null);
   const [detailTaskTitle, setDetailTaskTitle] = useState("");
-  const [detailDescription, setDetailDescription] = useState("");
   const [detailStartDatetime, setDetailStartDatetime] = useState("");
   const [detailEndDatetime, setDetailEndDatetime] = useState("");
+  const [detailHours, setDetailHours] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -212,7 +214,7 @@ export default function DashboardPage() {
     setDetailStartDatetime(dateToDatetimeLocal(entry.startTime));
     const entryEnd = entry.endTime ?? new Date(entry.startTime.getTime() + entry.durationSeconds * 1000);
     setDetailEndDatetime(dateToDatetimeLocal(entryEnd));
-    setDetailDescription(entry.description ?? "");
+    setDetailHours((entry.durationSeconds / 3600).toFixed(2));
     setDetailError(null);
   }
 
@@ -250,8 +252,7 @@ export default function DashboardPage() {
           dateKey: detailStartDatetime.substring(0, 10),
           durationSeconds,
           startTime: startDt.toISOString(),
-          endTime: endDt.toISOString(),
-          description: detailDescription
+          endTime: endDt.toISOString()
         })
       });
       if (!response.ok) throw new Error(await response.text());
@@ -298,7 +299,7 @@ export default function DashboardPage() {
         {error ? <div className="error-state">{error}</div> : null}
 
         <div className="page-grid two">
-          <Card title="Uninvoiced work">
+          <Card title="Uninvoiced work" icon={<FontAwesomeIcon icon={faMoneyBillWave} />}>
             <div className="stack">
               <div className="range-label">
                 {formatDateRange(range.start, range.end)}
@@ -338,7 +339,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <Card title="Time entries">
+        <Card title="Time entries" icon={<FontAwesomeIcon icon={faClock} />}>
           {loading ? (
             <div className="loading-state">Loading entries…</div>
           ) : (
@@ -371,7 +372,18 @@ export default function DashboardPage() {
                   </div>
                   <div className="field">
                     <label htmlFor="detail-end">End</label>
-                    <Input id="detail-end" type="datetime-local" value={detailEndDatetime} onChange={(e) => setDetailEndDatetime(e.target.value)} />
+                    <Input
+                      id="detail-end"
+                      type="datetime-local"
+                      value={detailEndDatetime}
+                      onChange={(e) => {
+                        setDetailEndDatetime(e.target.value);
+                        const start = new Date(detailStartDatetime);
+                        const end = new Date(e.target.value);
+                        const secs = (end.getTime() - start.getTime()) / 1000;
+                        if (secs > 0) setDetailHours((secs / 3600).toFixed(2));
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="entry-detail-divider" />
@@ -380,8 +392,23 @@ export default function DashboardPage() {
                   <Input id="detail-task" value={detailTaskTitle} onChange={(e) => setDetailTaskTitle(e.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="detail-desc">Description</label>
-                  <Textarea id="detail-desc" value={detailDescription} onChange={(e) => setDetailDescription(e.target.value)} />
+                  <label htmlFor="detail-hours">Hours</label>
+                  <Input
+                    id="detail-hours"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={detailHours}
+                    onChange={(e) => {
+                      setDetailHours(e.target.value);
+                      const hours = parseFloat(e.target.value);
+                      if (Number.isFinite(hours) && hours > 0) {
+                        const start = new Date(detailStartDatetime);
+                        const end = new Date(start.getTime() + hours * 3600 * 1000);
+                        setDetailEndDatetime(dateToDatetimeLocal(end));
+                      }
+                    }}
+                  />
                 </div>
                 {detailError ? <div className="error-state">{detailError}</div> : null}
                 <div className="entry-detail-actions">
@@ -396,7 +423,7 @@ export default function DashboardPage() {
         })() : null}
 
         {invoicesError ? <div className="error-state">{invoicesError}</div> : null}
-        <Card title="Invoice history">
+        <Card title="Invoice history" icon={<FontAwesomeIcon icon={faFileInvoice} />}>
           {invoicesLoading ? (
             <div className="loading-state">Loading invoices…</div>
           ) : (

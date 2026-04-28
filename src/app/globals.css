@@ -255,6 +255,282 @@ a {
   gap: 16px;
 }
 
+/* ─── Dashboard calendar ──────────────────────────────────── */
+
+.dash-calendar {
+  display: grid;
+  gap: 12px;
+}
+
+.dash-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cal-month-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.cal-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.cal-nav-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.dash-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cal-dow-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted-2);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+}
+
+.cal-pad {
+  aspect-ratio: 1;
+}
+
+.cal-day-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  aspect-ratio: 1;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  padding: 2px;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.cal-day-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.cal-day-btn[data-today] {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.cal-day-btn[data-in-range] {
+  background: rgba(140, 232, 173, 0.08);
+  color: var(--text);
+}
+
+.cal-day-btn[data-endpoint] {
+  background: rgba(140, 232, 173, 0.2);
+  border-color: rgba(140, 232, 173, 0.5);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.cal-day-btn[data-status="uninvoiced"] {
+  border-color: rgba(140, 232, 173, 0.28);
+}
+
+.cal-day-btn[data-status="invoiced"] {
+  border-color: rgba(123, 223, 242, 0.28);
+}
+
+.cal-day-btn[data-status="paid"] {
+  border-color: rgba(138, 167, 255, 0.28);
+}
+
+.cal-day-btn[data-status="mixed"] {
+  border-color: rgba(240, 201, 106, 0.28);
+}
+
+.cal-day-num {
+  line-height: 1;
+}
+
+.cal-day-hours {
+  font-size: 0.6rem;
+  color: var(--muted-2);
+  line-height: 1;
+}
+
+.cal-range-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Billing summary ─────────────────────────────────────── */
+
+.billing-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.billing-summary-item {
+  display: grid;
+  gap: 4px;
+}
+
+.billing-summary-value {
+  font-size: 1.4rem;
+}
+
+.billing-summary-amount {
+  color: var(--green);
+}
+
+/* ─── Invoice Now button ─────────────────────────────────── */
+
+.invoice-now-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 24px;
+  border: 1px solid rgba(140, 232, 173, 0.4);
+  border-radius: var(--radius);
+  background: rgba(140, 232, 173, 0.08);
+  color: var(--green);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.invoice-now-btn:hover:not(:disabled) {
+  background: rgba(140, 232, 173, 0.15);
+  border-color: rgba(140, 232, 173, 0.65);
+  box-shadow: 0 0 24px rgba(140, 232, 173, 0.12);
+}
+
+.invoice-now-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ─── Entry list ─────────────────────────────────────────── */
+
+.entry-list {
+  display: grid;
+  gap: 0;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry-row:last-child {
+  border-bottom: none;
+}
+
+.entry-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.entry-task {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-project {
+  display: block;
+}
+
+.entry-times {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.entry-amount {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+  min-width: 80px;
+}
+
+/* ─── Time hero ──────────────────────────────────────────── */
+
+.time-hero {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.time-hero-clock {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.status-pulse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-hero-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.time-hero-task {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.time-hero-idle {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.time-hero-idle-clock {
+  opacity: 0.28;
+}
+
 .invoice-lines {
   display: grid;
   gap: 8px;

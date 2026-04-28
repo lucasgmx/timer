@@ -130,11 +130,6 @@ export function DashboardCalendar({
               title={dateKey}
             >
               <span className="cal-day-num">{dateKey.slice(8)}</span>
-              {summary && summary.totalDurationSeconds > 0 ? (
-                <span className="cal-day-hours">
-                  {(summary.totalDurationSeconds / 3600).toFixed(1)}h
-                </span>
-              ) : null}
             </button>
           );
         })}

@@ -14,6 +14,7 @@ import { DashboardCalendar } from "@/components/calendar/DashboardCalendar";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { formatCents, formatDuration } from "@/lib/billing/formatDuration";
 import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
@@ -22,10 +23,10 @@ import {
   invoiceFromDoc,
   projectFromDoc,
   summaryFromDoc,
-  taskFromDoc,
-  timeEntryFromDoc
+  taskFromDoc
 } from "@/lib/firebase/clientConverters";
 import type { CalendarDaySummary, Project, Task, TimeEntry } from "@/types";
+import { timeEntryFromDoc } from "@/lib/firebase/clientConverters";
 
 function formatTime(date: Date | null | undefined) {
   if (!date) return "—";
@@ -45,12 +46,30 @@ export default function DashboardPage() {
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [runningEntry, setRunningEntry] = useState<TimeEntry | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [summaries, setSummaries] = useState<CalendarDaySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoicing, setInvoicing] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+
+  const loadRunning = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const snap = await getDocs(
+        query(
+          collection(db, "timeEntries"),
+          where("userId", "==", profile.uid),
+          where("status", "==", "running"),
+          limit(1)
+        )
+      );
+      setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
+    } catch {
+      // non-critical
+    }
+  }, [profile]);
 
   // Determine default range from last invoice on mount
   useEffect(() => {
@@ -64,6 +83,7 @@ export default function DashboardPage() {
         ]);
         setProjects(projectSnap.docs.map(projectFromDoc));
         setTasks(taskSnap.docs.map(taskFromDoc));
+        void loadRunning();
         const lastInvoice = lastInvoiceSnap.docs[0]
           ? invoiceFromDoc(lastInvoiceSnap.docs[0])
           : null;
@@ -78,7 +98,7 @@ export default function DashboardPage() {
         setRangeReady(true);
       }
     })();
-  }, [profile, today]);
+  }, [profile, today, loadRunning]);
 
   // Load uninvoiced entries for the selected range
   const loadEntries = useCallback(async () => {
@@ -208,6 +228,7 @@ export default function DashboardPage() {
             />
           </Card>
 
+          <div className="stack">
           <Card eyebrow="billing" title="Uninvoiced work">
             <div className="stack">
               <div className="billing-summary">
@@ -240,6 +261,17 @@ export default function DashboardPage() {
               ) : null}
             </div>
           </Card>
+
+          <TimerCard
+            projects={projects}
+            tasks={tasks}
+            runningEntry={runningEntry}
+            onChanged={async () => {
+              await loadRunning();
+              await loadEntries();
+            }}
+          />
+          </div>
         </div>
 
         <Card eyebrow="entries" title="Time entries">

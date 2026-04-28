@@ -54,7 +54,7 @@ export function calculateInvoiceLineItems(
       projectId: entry.projectId,
       projectName: project.name,
       userId: entry.userId,
-      description: entry.description,
+      ...(entry.description !== undefined && { description: entry.description }),
       dateKey: entry.dateKey,
       durationSeconds: entry.durationSeconds,
       hoursDecimal: secondsToDecimalHours(entry.durationSeconds),

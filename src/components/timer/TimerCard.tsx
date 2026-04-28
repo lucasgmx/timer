@@ -5,7 +5,7 @@ import { Play, Square } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Select, Textarea } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import type { Project, Task, TimeEntry } from "@/types";
 import { RunningTimer } from "./RunningTimer";
 
@@ -19,52 +19,83 @@ type TimerCardProps = {
 export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCardProps) {
   const { getToken } = useAuth();
   const activeProjects = projects.filter((project) => project.status === "active");
-  const [projectId, setProjectId] = useState(activeProjects[0]?.id ?? "");
+  const flycoProject = activeProjects.find((p) => p.name === "Flyco");
+  const [projectId, setProjectId] = useState(flycoProject?.id ?? activeProjects[0]?.id ?? "");
   const projectTasks = useMemo(
     () =>
       tasks.filter((task) => task.projectId === projectId && task.status === "active"),
     [projectId, tasks]
   );
-  const [taskId, setTaskId] = useState(projectTasks[0]?.id ?? "");
-  const [description, setDescription] = useState("");
+  const [taskInput, setTaskInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!projectId && activeProjects[0]) {
-      setProjectId(activeProjects[0].id);
-    }
-  }, [activeProjects, projectId]);
+    if (activeProjects.length === 0) return;
+    const preferred = activeProjects.find((p) => p.name === "Flyco") ?? activeProjects[0];
+    setProjectId((current) => {
+      if (!current || !activeProjects.some((p) => p.id === current)) {
+        return preferred.id;
+      }
+      return current;
+    });
+  }, [activeProjects.map((p) => p.id).join(",")]);
 
   useEffect(() => {
-    if (!projectTasks.some((task) => task.id === taskId)) {
-      setTaskId(projectTasks[0]?.id ?? "");
-    }
-  }, [projectTasks, taskId]);
+    setTaskInput("");
+  }, [projectId]);
 
-  async function callTimerApi(path: string, payload: Record<string, unknown>) {
+  async function callApi(path: string, payload: Record<string, unknown>) {
+    const token = await getToken();
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json() as Promise<Record<string, unknown>>;
+  }
+
+  async function handleStart() {
+    const trimmed = taskInput.trim();
+    if (!trimmed || !projectId) return;
     setBusy(true);
     setError(null);
-
     try {
-      const token = await getToken();
-      const response = await fetch(path, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      // Find existing active task (case-insensitive)
+      let resolvedTaskId = projectTasks.find(
+        (t) => t.title.toLowerCase() === trimmed.toLowerCase()
+      )?.id;
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+      // Create the task if it doesn't exist yet
+      if (!resolvedTaskId) {
+        const created = await callApi("/api/tasks/upsert", {
+          projectId,
+          title: trimmed,
+          status: "active"
+        });
+        resolvedTaskId = created.id as string;
       }
 
-      setDescription("");
+      await callApi("/api/time-entries/start", { projectId, taskId: resolvedTaskId });
+      setTaskInput("");
       await onChanged();
-    } catch (apiError) {
-      setError(apiError instanceof Error ? apiError.message : "Timer action failed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Timer action failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStop() {
+    if (!runningEntry) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await callApi("/api/time-entries/stop", { timeEntryId: runningEntry.id });
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Timer action failed.");
     } finally {
       setBusy(false);
     }
@@ -78,27 +109,23 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
     : null;
 
   return (
-    <Card eyebrow="live timer" title={runningEntry ? "Timer running" : "Start tracking"}>
+    <Card eyebrow="live timer" title={runningEntry ? "Timer running" : "Start tracking"} className={runningEntry ? "timer-running" : ""}>
       <div className="stack">
         {runningEntry ? (
           <>
-            <div className="cluster">
-              <span className="status-dot" aria-hidden="true" />
-              <span className="muted">
-                {runningProject?.name ?? "Project"} / {runningTask?.title ?? "Task"}
-              </span>
+            <div className="running-task-block">
+              <div className="running-task-project-row">
+                <span className="status-dot" aria-hidden="true" />
+                <span className="running-task-project">{runningProject?.name ?? "Project"}</span>
+              </div>
+              <div className="running-task-name">{runningTask?.title ?? "Task"}</div>
             </div>
             <RunningTimer startTime={runningEntry.startTime} />
-            {runningEntry.description ? (
-              <p className="muted">{runningEntry.description}</p>
-            ) : null}
             <Button
               variant="danger"
               icon={<Square />}
               disabled={busy}
-              onClick={() =>
-                callTimerApi("/api/time-entries/stop", { timeEntryId: runningEntry.id })
-              }
+              onClick={() => void handleStop()}
             >
               Stop timer
             </Button>
@@ -121,38 +148,25 @@ export function TimerCard({ projects, tasks, runningEntry, onChanged }: TimerCar
             </div>
             <div className="field">
               <label htmlFor="timer-task">Task</label>
-              <Select
-                id="timer-task"
-                value={taskId}
-                onChange={(event) => setTaskId(event.target.value)}
-              >
+              <datalist id="timer-task-list">
                 {projectTasks.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.title}
-                  </option>
+                  <option key={task.id} value={task.title} />
                 ))}
-              </Select>
-            </div>
-            <div className="field">
-              <label htmlFor="timer-description">Description</label>
-              <Textarea
-                id="timer-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What are you working on?"
+              </datalist>
+              <Input
+                id="timer-task"
+                list="timer-task-list"
+                value={taskInput}
+                onChange={(event) => setTaskInput(event.target.value)}
+                placeholder="Type a task name…"
+                autoComplete="off"
               />
             </div>
             <Button
               variant="primary"
               icon={<Play />}
-              disabled={busy || !projectId || !taskId}
-              onClick={() =>
-                callTimerApi("/api/time-entries/start", {
-                  projectId,
-                  taskId,
-                  description
-                })
-              }
+              disabled={busy || !projectId || !taskInput.trim()}
+              onClick={() => void handleStart()}
             >
               Start timer
             </Button>

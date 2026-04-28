@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { BarChart3, Clock3, FileText, Settings } from "lucide-react";
+import { BarChart3, FileText, Settings } from "lucide-react";
 import "./layout.css";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/time", label: "Time", icon: Clock3 },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings }
 ] as const;
@@ -18,11 +18,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <Link href="/dashboard" className="brand">
-        <span className="brand-mark">T</span>
-        <span>
-          <strong>Timer</strong>
-          <small>marques.llc</small>
-        </span>
+        <Image src="/logo_white.png" alt="Timer" width={204} height={29} priority style={{ width: "100%", height: "auto" }} />
       </Link>
       <nav className="nav-list" aria-label="Primary navigation">
         {navItems.map((item) => {

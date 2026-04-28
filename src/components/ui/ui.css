@@ -1,3 +1,8 @@
+@keyframes blink-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .ui-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -6,6 +11,25 @@
     var(--surface);
   box-shadow: var(--shadow);
   padding: 18px;
+}
+
+.ui-card.timer-running {
+  position: relative;
+  border: 2px solid rgba(220, 60, 60, 0.75);
+  box-shadow: 0 0 0 1px rgba(220, 60, 60, 0.18), var(--shadow);
+}
+
+.ui-card.timer-running::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #e03030;
+  box-shadow: 0 0 14px rgba(224, 48, 48, 0.95);
+  animation: blink-red 1.2s ease-in-out infinite;
 }
 
 .ui-card-header {
@@ -105,20 +129,40 @@
   color: var(--muted);
 }
 
+@keyframes terminal-blink {
+  0%, 49% { caret-color: #33ff66; }
+  50%, 100% { caret-color: transparent; }
+}
+
 .ui-input {
   width: 100%;
   min-height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid rgba(51, 255, 102, 0.25);
+  border-radius: 4px;
   padding: 9px 10px;
-  color: var(--text);
-  background: rgba(0, 0, 0, 0.24);
+  color: #33ff66;
+  background: rgba(0, 8, 2, 0.72);
   outline: none;
+  caret-color: #33ff66;
+  caret-shape: block;
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.55);
+  animation: terminal-blink 1s step-end infinite;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+.ui-input::placeholder {
+  color: rgba(51, 255, 102, 0.3);
+  text-shadow: none;
 }
 
 .ui-input:focus {
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px rgba(140, 232, 173, 0.08);
+  border-color: rgba(51, 255, 102, 0.7);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(51, 255, 102, 0.15), 0 0 10px rgba(51, 255, 102, 0.12);
+}
+
+.ui-input option {
+  background: #050e07;
+  color: #33ff66;
 }
 
 .ui-textarea {
@@ -141,7 +185,7 @@
   border-bottom: 1px solid var(--border);
   padding: 11px 10px;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .ui-table th {

@@ -159,16 +159,77 @@ a {
   display: grid;
   min-height: 100vh;
   place-items: center;
+  align-content: center;
+  gap: 28px;
   padding: 24px;
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 350px);
 }
 
 .login-card {
   width: min(100%, 440px);
 }
 
+.login-title {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.login-title-accent {
+  color: var(--green);
+}
+
+.login-title-dot {
+  color: var(--muted-2);
+  margin: 0 1px;
+}
+
+.login-spinner-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes login-spin {
+  to { transform: rotate(360deg); }
+}
+
+.login-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin 0.7s linear infinite;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
+}
+
+.recaptcha-notice {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--muted-2);
+  text-align: center;
+}
+
+.recaptcha-notice a {
+  color: var(--muted-2);
+  text-underline-offset: 2px;
+}
+
+.recaptcha-notice a:hover {
+  color: var(--text);
 }
 
 .field {
@@ -212,6 +273,33 @@ a {
   border-radius: 999px;
   background: var(--green);
   box-shadow: 0 0 16px rgba(140, 232, 173, 0.66);
+}
+
+.running-task-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.running-task-project-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.running-task-project {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.running-task-name {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .calendar-grid {
@@ -259,7 +347,7 @@ a {
 
 .dash-calendar {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .dash-cal-nav {
@@ -298,17 +386,17 @@ a {
 .dash-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+  gap: 2px;
 }
 
 .cal-dow-label {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: var(--muted-2);
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .cal-pad {
@@ -320,15 +408,15 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   aspect-ratio: 1;
-  min-height: 36px;
+  min-height: 28px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.78rem;
-  padding: 2px;
+  font-size: 0.72rem;
+  padding: 1px;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 
@@ -376,7 +464,7 @@ a {
 }
 
 .cal-day-hours {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: var(--muted-2);
   line-height: 1;
 }

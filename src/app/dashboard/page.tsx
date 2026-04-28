@@ -19,7 +19,7 @@ import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
-import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { formatCents, formatDuration } from "@/lib/billing/formatDuration";
 import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
@@ -84,7 +84,7 @@ export default function DashboardPage() {
   const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [detailEntry, setDetailEntry] = useState<TimeEntry | null>(null);
-  const [detailTaskId, setDetailTaskId] = useState("");
+  const [detailTaskTitle, setDetailTaskTitle] = useState("");
   const [detailDescription, setDetailDescription] = useState("");
   const [detailStartDatetime, setDetailStartDatetime] = useState("");
   const [detailEndDatetime, setDetailEndDatetime] = useState("");
@@ -207,7 +207,8 @@ export default function DashboardPage() {
 
   function openDetail(entry: TimeEntry) {
     setDetailEntry(entry);
-    setDetailTaskId(entry.taskId);
+    const task = tasks.find((t) => t.id === entry.taskId);
+    setDetailTaskTitle(task?.title ?? "");
     setDetailStartDatetime(dateToDatetimeLocal(entry.startTime));
     const entryEnd = entry.endTime ?? new Date(entry.startTime.getTime() + entry.durationSeconds * 1000);
     setDetailEndDatetime(dateToDatetimeLocal(entryEnd));
@@ -228,6 +229,14 @@ export default function DashboardPage() {
       setDetailError("Duration cannot exceed 24 hours.");
       return;
     }
+    const trimmedTitle = detailTaskTitle.trim();
+    const matchedTask = tasks.find(
+      (t) => t.title.toLowerCase() === trimmedTitle.toLowerCase()
+    );
+    if (!matchedTask) {
+      setDetailError(`No task named "${trimmedTitle}". Create it in Settings first.`);
+      return;
+    }
     setDetailBusy(true);
     setDetailError(null);
     try {
@@ -237,7 +246,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           id: detailEntry.id,
-          taskId: detailTaskId,
+          taskId: matchedTask.id,
           dateKey: detailStartDatetime.substring(0, 10),
           durationSeconds,
           startTime: startDt.toISOString(),
@@ -352,7 +361,6 @@ export default function DashboardPage() {
         </Card>
 
         {detailEntry ? (() => {
-          const activeTasks = tasks.filter((t) => t.status === "active");
           return (
             <div className="entry-detail-overlay" onClick={() => setDetailEntry(null)}>
               <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
@@ -369,11 +377,7 @@ export default function DashboardPage() {
                 <div className="entry-detail-divider" />
                 <div className="field">
                   <label htmlFor="detail-task">Task</label>
-                  <Select id="detail-task" value={detailTaskId} onChange={(e) => setDetailTaskId(e.target.value)}>
-                    {activeTasks.map((t) => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
-                    ))}
-                  </Select>
+                  <Input id="detail-task" value={detailTaskTitle} onChange={(e) => setDetailTaskTitle(e.target.value)} />
                 </div>
                 <div className="field">
                   <label htmlFor="detail-desc">Description</label>

@@ -1,11 +1,12 @@
 "use client";
 
 import { doc, getDoc } from "firebase/firestore";
-import { Send, Ban, CheckCircle2, Pencil } from "lucide-react";
+import { Ban, CheckCircle2, Pencil, RotateCcw } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { InvoiceEditForm } from "@/components/invoices/InvoiceEditForm";
 import { InvoicePreview } from "@/components/invoices/InvoicePreview";
+import { InvoiceStatusBadge } from "@/components/invoices/InvoiceStatusBadge";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
@@ -104,10 +105,11 @@ export default function InvoiceDetailPage() {
           <div>
             <div className="eyebrow">invoice</div>
             <h1 className="page-title">{invoice?.invoiceNumber ?? "Invoice"}</h1>
+            {invoice ? <div style={{ marginTop: "6px" }}><InvoiceStatusBadge status={invoice.status} /></div> : null}
           </div>
           {profile?.role === "admin" && invoice && !editMode ? (
             <div className="cluster">
-              {invoice.status === "draft" ? (
+              {invoice.status === "unpaid" ? (
                 <Button
                   icon={<Pencil />}
                   onClick={() => setEditMode(true)}
@@ -116,29 +118,37 @@ export default function InvoiceDetailPage() {
                   Edit
                 </Button>
               ) : null}
-              <Button
-                icon={<Send />}
-                disabled={busy || invoice.status === "paid" || invoice.status === "void"}
-                onClick={() => updateStatus("/api/invoices/mark-sent")}
-              >
-                Mark sent
-              </Button>
-              <Button
-                variant="primary"
-                icon={<CheckCircle2 />}
-                disabled={busy || invoice.status === "paid" || invoice.status === "void"}
-                onClick={() => updateStatus("/api/invoices/mark-paid")}
-              >
-                Mark paid
-              </Button>
-              <Button
-                variant="danger"
-                icon={<Ban />}
-                disabled={busy || invoice.status === "void"}
-                onClick={() => updateStatus("/api/invoices/void")}
-              >
-                Void
-              </Button>
+              {invoice.status === "unpaid" ? (
+                <Button
+                  variant="primary"
+                  icon={<CheckCircle2 />}
+                  disabled={busy}
+                  onClick={() => updateStatus("/api/invoices/mark-paid")}
+                >
+                  Mark paid
+                </Button>
+              ) : null}
+              {invoice.status === "paid" ? (
+                <Button
+                  icon={<RotateCcw />}
+                  disabled={busy}
+                  onClick={() => updateStatus("/api/invoices/mark-unpaid")}
+                >
+                  Mark unpaid
+                </Button>
+              ) : null}
+              {invoice.status !== "void" ? (
+                <div style={{ display: "flex", borderLeft: "1px solid var(--border)", paddingLeft: "8px" }}>
+                  <Button
+                    variant="danger"
+                    icon={<Ban />}
+                    disabled={busy}
+                    onClick={() => updateStatus("/api/invoices/void")}
+                  >
+                    Void
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

@@ -27,8 +27,8 @@ export async function POST(request: Request) {
 
       const invoice = invoiceSnap.data();
 
-      if (invoice?.status !== "unpaid") {
-        throw new Response("Invoice cannot be marked as paid.", { status: 409 });
+      if (invoice?.status !== "paid") {
+        throw new Response("Only paid invoices can be marked as unpaid.", { status: 409 });
       }
 
       const entriesSnap = await transaction.get(
@@ -43,21 +43,21 @@ export async function POST(request: Request) {
           dateKey: lineItem.dateKey,
           userId: lineItem.userId,
           delta: {
-            invoicedUnpaidAmountCents: -lineItem.amountCents,
-            paidAmountCents: lineItem.amountCents
+            paidAmountCents: -lineItem.amountCents,
+            invoicedUnpaidAmountCents: lineItem.amountCents
           }
         }))
       );
 
       transaction.update(invoiceRef, {
-        status: "paid",
-        paidAt: FieldValue.serverTimestamp(),
+        status: "unpaid",
+        paidAt: null,
         updatedAt: FieldValue.serverTimestamp()
       });
 
       entriesSnap.docs.forEach((doc) => {
         transaction.update(doc.ref, {
-          invoiceStatusSnapshot: "paid",
+          invoiceStatusSnapshot: "unpaid",
           updatedAt: FieldValue.serverTimestamp()
         });
       });
@@ -66,16 +66,15 @@ export async function POST(request: Request) {
         transaction,
         db,
         actor,
-        "invoice.paid",
+        "invoice.unpaid",
         COLLECTIONS.invoices,
         body.invoiceId,
         {
-          previousStatus: invoice?.status,
-          totalCents: invoice?.totalCents
+          previousStatus: invoice?.status
         }
       );
 
-      return { id: body.invoiceId, status: "paid" };
+      return { id: body.invoiceId, status: "unpaid" };
     });
 
     return Response.json(result);

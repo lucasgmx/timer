@@ -18,7 +18,6 @@ export function taskFromDoc(doc: DocumentSnapshot<DocumentData>): Task {
   return {
     id: doc.id,
     title: String(data.title ?? "Untitled task"),
-    description: data.description ?? null,
     hourlyRateCentsOverride:
       data.hourlyRateCentsOverride === null || data.hourlyRateCentsOverride === undefined
         ? null

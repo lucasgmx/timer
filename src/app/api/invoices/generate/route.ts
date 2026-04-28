@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       transaction.set(invoiceRef, {
         invoiceNumber,
         clientName: body.clientName,
-        status: "draft",
+        status: "unpaid",
         dateRange: body.dateRange,
         lineItems: invoiceSnapshot.lineItems,
         subtotalCents: invoiceSnapshot.subtotalCents,
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         transaction.update(db.collection(COLLECTIONS.timeEntries).doc(lineItem.timeEntryId), {
           status: "invoiced",
           invoiceId: invoiceRef.id,
-          invoiceStatusSnapshot: "draft",
+          invoiceStatusSnapshot: "unpaid",
           amountCentsSnapshot: lineItem.amountCents,
           hourlyRateCentsSnapshot: lineItem.hourlyRateCents,
           updatedAt: FieldValue.serverTimestamp()

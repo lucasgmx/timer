@@ -66,7 +66,6 @@ export async function POST(request: Request) {
         // New task path — create it inside this transaction
         transaction.set(taskRef, {
           title: body.taskTitle,
-          description: null,
           hourlyRateCentsOverride: null,
           status: "active",
           createdAt: FieldValue.serverTimestamp(),

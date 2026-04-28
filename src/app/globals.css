@@ -307,11 +307,30 @@ a {
 }
 
 .running-task-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text);
   font-weight: 700;
   font-size: 1.45rem;
   letter-spacing: -0.02em;
   line-height: 1.15;
+}
+
+.running-task-name::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f87171;
+  flex-shrink: 0;
+  animation: blink-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .calendar-grid {
@@ -770,6 +789,13 @@ a {
   gap: 12px;
   border-bottom: 1px solid var(--border);
   padding: 10px 0;
+}
+
+.invoice-line-total {
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+  padding-top: 12px;
+  font-weight: 600;
 }
 
 /* ─── Invoice edit form ───────────────────────────────────── */

@@ -8,14 +8,14 @@ export function InvoiceStatusBadge({
 }) {
   const tone =
     status === "paid"
-      ? "blue"
-      : status === "sent" || status === "invoiced"
-        ? "cyan"
-        : status === "draft" || status === "uninvoiced" || status === "completed"
-          ? "green"
-          : status === "overdue"
-            ? "amber"
-            : "red";
+      ? "green"
+      : status === "unpaid" || status === "invoiced"
+        ? "red"
+        : status === "uninvoiced" || status === "completed"
+          ? "gray"
+          : status === "running"
+            ? "cyan"
+            : "gray";
 
   return <Badge tone={tone}>{status}</Badge>;
 }

@@ -1,4 +1,4 @@
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "void";
+export type InvoiceStatus = "unpaid" | "paid" | "void";
 
 export type InvoiceLineItem = {
   timeEntryId: string;

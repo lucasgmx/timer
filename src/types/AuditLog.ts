@@ -5,6 +5,7 @@ export type AuditAction =
   | "invoice.lineItemsEdited"
   | "invoice.sent"
   | "invoice.paid"
+  | "invoice.unpaid"
   | "invoice.voided"
   | "timeEntry.created"
   | "timeEntry.updated"

@@ -71,7 +71,6 @@ export const updateDefaultRateSchema = z.object({
 export const taskUpsertSchema = z.object({
   id: nonEmptyIdSchema.optional(),
   title: z.string().trim().min(1).max(160),
-  description: z.string().trim().max(500).optional().nullable(),
   hourlyRateCentsOverride: z.number().int().nonnegative().max(1_000_000).optional().nullable(),
   status: z.enum(["active", "archived"]).default("active")
 });

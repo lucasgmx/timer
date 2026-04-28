@@ -24,7 +24,6 @@ export async function POST(request: Request) {
         ref,
         {
           title: body.title,
-          description: body.description ?? null,
           hourlyRateCentsOverride: body.hourlyRateCentsOverride ?? null,
           status: body.status,
           createdAt: existing.exists

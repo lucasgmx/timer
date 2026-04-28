@@ -2,14 +2,13 @@
 
 import {
   collection,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
   where
 } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
@@ -27,32 +26,34 @@ export default function TimePage() {
   const [runningEntry, setRunningEntry] = useState<TimeEntry | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadTasks = useCallback(async () => {
-    if (!profile) return;
-    const taskSnap = await getDocs(query(collection(db, "tasks"), orderBy("title", "asc")));
-    setTasks(taskSnap.docs.map(taskFromDoc));
-  }, [profile]);
-
   useEffect(() => {
     if (!profile) return;
 
-    let unsub: (() => void) | undefined;
+    const unsubTasks = onSnapshot(
+      query(collection(db, "tasks"), orderBy("title", "asc")),
+      (snap) => {
+        setTasks(snap.docs.map(taskFromDoc));
+      }
+    );
 
-    void loadTasks().then(() => {
-      const q = query(
+    const unsubEntries = onSnapshot(
+      query(
         collection(db, "timeEntries"),
         where("userId", "==", profile.uid),
         where("status", "==", "running"),
         limit(1)
-      );
-      unsub = onSnapshot(q, (snap) => {
+      ),
+      (snap) => {
         setRunningEntry(snap.docs[0] ? timeEntryFromDoc(snap.docs[0]) : null);
         setLoading(false);
-      });
-    });
+      }
+    );
 
-    return () => unsub?.();
-  }, [profile, loadTasks]);
+    return () => {
+      unsubTasks();
+      unsubEntries();
+    };
+  }, [profile]);
 
   const runningTask = runningEntry ? tasks.find((t) => t.id === runningEntry.taskId) : null;
 
@@ -92,7 +93,7 @@ export default function TimePage() {
         <TimerCard
             tasks={tasks}
             runningEntry={runningEntry}
-            onChanged={loadTasks}
+            onChanged={() => {}}
           />
         </div>
       </main>

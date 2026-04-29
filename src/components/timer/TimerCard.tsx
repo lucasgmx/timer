@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { getUserTimeZone } from "@/lib/dates/dateKeys";
 import type { Task, TimeEntry } from "@/types";
 import { RunningTimer } from "./RunningTimer";
 
@@ -36,7 +37,7 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
     const response = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, timeZone: getUserTimeZone() })
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json() as Promise<Record<string, unknown>>;

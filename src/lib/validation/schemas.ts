@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidTimeZone } from "@/lib/dates/dateKeys";
 
 export const dateKeySchema = z
   .string()
@@ -6,17 +7,26 @@ export const dateKeySchema = z
 
 export const nonEmptyIdSchema = z.string().trim().min(1).max(160);
 
+export const timeZoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .refine(isValidTimeZone, "Use a valid IANA time zone.");
+
 export const startTimerSchema = z
   .object({
     taskId: nonEmptyIdSchema.optional(),
-    taskTitle: z.string().trim().min(1).max(160).optional()
+    taskTitle: z.string().trim().min(1).max(160).optional(),
+    timeZone: timeZoneSchema.optional()
   })
   .refine((data) => data.taskId || data.taskTitle, {
     message: "Either taskId or taskTitle must be provided."
   });
 
 export const stopTimerSchema = z.object({
-  timeEntryId: nonEmptyIdSchema.optional()
+  timeEntryId: nonEmptyIdSchema.optional(),
+  timeZone: timeZoneSchema.optional()
 });
 
 export const timeEntryUpdateSchema = z.object({
@@ -25,7 +35,8 @@ export const timeEntryUpdateSchema = z.object({
   dateKey: dateKeySchema,
   durationSeconds: z.number().int().positive().max(60 * 60 * 24),
   startTime: z.string().datetime().optional(),
-  endTime: z.string().datetime().optional()
+  endTime: z.string().datetime().optional(),
+  timeZone: timeZoneSchema.optional()
 });
 
 export const dateRangeSchema = z

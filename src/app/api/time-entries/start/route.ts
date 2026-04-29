@@ -1,4 +1,4 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { calculateAmountCents } from "@/lib/billing/formatDuration";
 import { dateToDateKey } from "@/lib/dates/dateKeys";
 import { adminDb } from "@/lib/firebase/admin";
@@ -83,11 +83,12 @@ export async function POST(request: Request) {
       }
 
       const timeEntryRef = db.collection(COLLECTIONS.timeEntries).doc();
+      const startTime = Timestamp.now();
 
       transaction.set(timeEntryRef, {
         userId: actor.uid,
         taskId: resolvedTaskId,
-        startTime: FieldValue.serverTimestamp(),
+        startTime,
         endTime: null,
         durationSeconds: 0,
         hourlyRateCentsSnapshot,
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
         status: "running",
         invoiceId: null,
         invoiceStatusSnapshot: null,
-        dateKey: dateToDateKey(new Date()),
+        dateKey: dateToDateKey(startTime.toDate(), body.timeZone),
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });

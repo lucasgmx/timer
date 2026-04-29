@@ -702,7 +702,58 @@ a {
   font-size: 0.85em;
 }
 
+.entry-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry-detail-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.entry-detail-popup-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.entry-detail-popup-close:hover {
+  color: var(--text);
+}
+
+.entry-detail-fields {
+  display: flex;
+  gap: 12px;
+}
+
+.entry-detail-fields .field:first-child {
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.entry-detail-fields .field:last-child {
+  flex: 1 1 0;
+  min-width: 100px;
+}
+
 .entry-detail-close {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: 1px solid var(--border);
   color: var(--text);

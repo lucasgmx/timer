@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { calculateAmountCents } from "@/lib/billing/formatDuration";
-import { dateKeyToDate } from "@/lib/dates/dateKeys";
+import { dateKeyToDate, dateToDateKey } from "@/lib/dates/dateKeys";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAuthenticatedUser, jsonError } from "@/lib/firebase/auth";
 import { COLLECTIONS } from "@/lib/firebase/firestore";
@@ -37,12 +37,15 @@ export async function POST(request: Request) {
         const ref = db.collection(COLLECTIONS.timeEntries).doc();
         const startTime = body.startTime
           ? Timestamp.fromDate(new Date(body.startTime))
-          : Timestamp.fromDate(dateKeyToDate(body.dateKey));
+          : Timestamp.fromDate(dateKeyToDate(body.dateKey, body.timeZone));
         const endTime = body.endTime
           ? Timestamp.fromDate(new Date(body.endTime))
           : Timestamp.fromMillis(startTime.toMillis() + body.durationSeconds * 1000);
+        const dateKey = body.startTime && body.timeZone
+          ? dateToDateKey(startTime.toDate(), body.timeZone)
+          : body.dateKey;
 
-        await applyCalendarSummaryDelta(transaction, db, body.dateKey, actor.uid, {
+        await applyCalendarSummaryDelta(transaction, db, dateKey, actor.uid, {
           totalDurationSeconds: body.durationSeconds,
           uninvoicedAmountCents: amountCentsSnapshot
         });
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
           status: "completed",
           invoiceId: null,
           invoiceStatusSnapshot: null,
-          dateKey: body.dateKey,
+          dateKey,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp()
         });
@@ -101,10 +104,13 @@ export async function POST(request: Request) {
 
       const startTime = body.startTime
         ? Timestamp.fromDate(new Date(body.startTime))
-        : Timestamp.fromDate(dateKeyToDate(body.dateKey));
+        : Timestamp.fromDate(dateKeyToDate(body.dateKey, body.timeZone));
       const endTime = body.endTime
         ? Timestamp.fromDate(new Date(body.endTime))
         : Timestamp.fromMillis(startTime.toMillis() + body.durationSeconds * 1000);
+      const dateKey = body.startTime && body.timeZone
+        ? dateToDateKey(startTime.toDate(), body.timeZone)
+        : body.dateKey;
 
       await applyCalendarSummaryDeltas(transaction, db, [
         {
@@ -116,7 +122,7 @@ export async function POST(request: Request) {
           }
         },
         {
-          dateKey: body.dateKey,
+          dateKey,
           userId: existing.userId,
           delta: {
             totalDurationSeconds: body.durationSeconds,
@@ -132,7 +138,7 @@ export async function POST(request: Request) {
         durationSeconds: body.durationSeconds,
         hourlyRateCentsSnapshot,
         amountCentsSnapshot,
-        dateKey: body.dateKey,
+        dateKey,
         updatedAt: FieldValue.serverTimestamp()
       });
 

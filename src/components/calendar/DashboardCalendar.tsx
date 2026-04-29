@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { todayDateKey } from "@/lib/dates/dateKeys";
+import { getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import type { CalendarDaySummary } from "@/types";
 import type { DateRange } from "./DateRangePicker";
 
@@ -26,7 +26,7 @@ export function DashboardCalendar({
   summaries = [],
   onViewChange
 }: DashboardCalendarProps) {
-  const today = todayDateKey();
+  const [today, setToday] = useState(() => todayDateKey("UTC"));
   const [viewYear, setViewYear] = useState(() => {
     const d = new Date(`${range.end}T00:00:00Z`);
     return d.getUTCFullYear();
@@ -36,6 +36,10 @@ export function DashboardCalendar({
     return d.getUTCMonth();
   });
   const [selecting, setSelecting] = useState(false);
+
+  useEffect(() => {
+    setToday(todayDateKey(getUserTimeZone()));
+  }, []);
 
   const byDate = useMemo(
     () => new Map(summaries.map((s) => [s.dateKey, s])),

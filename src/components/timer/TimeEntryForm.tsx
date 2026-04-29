@@ -8,7 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Input";
-import { todayDateKey } from "@/lib/dates/dateKeys";
+import { getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import type { Task, TimeEntry } from "@/types";
 
 type TimeEntryFormProps = {
@@ -27,10 +27,20 @@ export function TimeEntryForm({
   const { getToken } = useAuth();
   const activeTasks = tasks.filter((task) => task.status === "active");
   const [taskId, setTaskId] = useState(activeTasks[0]?.id ?? "");
-  const [dateKey, setDateKey] = useState(todayDateKey());
+  const [timeZone, setTimeZone] = useState("UTC");
+  const [dateKey, setDateKey] = useState(() => todayDateKey("UTC"));
   const [hours, setHours] = useState("1:00");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const localTimeZone = getUserTimeZone();
+    setTimeZone(localTimeZone);
+
+    if (!editingEntry) {
+      setDateKey(todayDateKey(localTimeZone));
+    }
+  }, [editingEntry]);
 
   useEffect(() => {
     if (editingEntry) {
@@ -80,7 +90,8 @@ export function TimeEntryForm({
           id: editingEntry?.id,
           taskId,
           dateKey,
-          durationSeconds: Math.round(parsedHours * 3600)
+          durationSeconds: Math.round(parsedHours * 3600),
+          timeZone
         })
       });
 

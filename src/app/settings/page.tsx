@@ -195,25 +195,33 @@ export default function SettingsPage() {
         {editingTask ? (
           <div className="entry-detail-overlay" onClick={() => setEditingTask(null)}>
             <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
-              <div className="field">
-                <label htmlFor="edit-task-title">Task name</label>
-                <Input
-                  id="edit-task-title"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  autoFocus
-                />
+              <div className="entry-detail-header">
+                <span className="entry-detail-title">Edit task</span>
+                <button className="entry-detail-popup-close" onClick={() => setEditingTask(null)} aria-label="Close">
+                  <X size={16} />
+                </button>
               </div>
-              <div className="field">
-                <label htmlFor="edit-task-rate">Hourly rate</label>
-                <Input
-                  id="edit-task-rate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={editRate}
-                  onChange={(e) => setEditRate(e.target.value)}
-                />
+              <div className="entry-detail-fields">
+                <div className="field">
+                  <label htmlFor="edit-task-title">Task name</label>
+                  <Input
+                    id="edit-task-title"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="edit-task-rate">Rate ($/hr)</label>
+                  <Input
+                    id="edit-task-rate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editRate}
+                    onChange={(e) => setEditRate(e.target.value)}
+                  />
+                </div>
               </div>
               {editError ? <div className="error-state">{editError}</div> : null}
               <div className="entry-detail-actions">

@@ -23,7 +23,7 @@ import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { formatCents, formatDuration, secondsToDecimalHours } from "@/lib/billing/formatDuration";
-import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
+import { addDays, getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
 import {
   invoiceFromDoc,
@@ -31,15 +31,6 @@ import {
 } from "@/lib/firebase/clientConverters";
 import type { Invoice, Task, TimeEntry } from "@/types";
 import { timeEntryFromDoc } from "@/lib/firebase/clientConverters";
-
-function formatDateKey(key: string) {
-  return new Date(`${key}T00:00:00.000Z`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC"
-  });
-}
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(`${start}T00:00:00.000Z`);
@@ -70,10 +61,36 @@ function formatShortDuration(totalSeconds: number) {
   return `${hours}:${String(minutes).padStart(2, "0")}`;
 }
 
+function sortTasksLatestFirst(tasks: Task[]) {
+  return [...tasks].sort((a, b) => {
+    const updatedDelta = b.updatedAt.getTime() - a.updatedAt.getTime();
+    if (updatedDelta !== 0) return updatedDelta;
+
+    const createdDelta = b.createdAt.getTime() - a.createdAt.getTime();
+    if (createdDelta !== 0) return createdDelta;
+
+    return a.title.localeCompare(b.title);
+  });
+}
+
+function sortEntriesLatestFirst(entries: TimeEntry[]) {
+  return [...entries].sort((a, b) => {
+    const startDelta = b.startTime.getTime() - a.startTime.getTime();
+    if (startDelta !== 0) return startDelta;
+
+    const updatedDelta = b.updatedAt.getTime() - a.updatedAt.getTime();
+    if (updatedDelta !== 0) return updatedDelta;
+
+    return b.id.localeCompare(a.id);
+  });
+}
+
 export default function DashboardPage() {
   const { profile, getToken } = useAuth();
   const router = useRouter();
-  const today = todayDateKey();
+  const [timeZone, setTimeZone] = useState("UTC");
+  const [timeZoneReady, setTimeZoneReady] = useState(false);
+  const today = useMemo(() => todayDateKey(timeZone), [timeZone]);
   const [range, setRange] = useState<DateRange>({ start: today, end: today });
   const [rangeReady, setRangeReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -93,6 +110,11 @@ export default function DashboardPage() {
   const [detailHours, setDetailHours] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTimeZone(getUserTimeZone());
+    setTimeZoneReady(true);
+  }, []);
 
   const loadInvoices = useCallback(async () => {
     if (!profile) return;
@@ -114,7 +136,7 @@ export default function DashboardPage() {
     if (!profile) return;
     try {
       const taskSnap = await getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc")));
-      setTasks(taskSnap.docs.map(taskFromDoc));
+      setTasks(sortTasksLatestFirst(taskSnap.docs.map(taskFromDoc)));
     } catch {
       // tasks will remain stale; not critical
     }
@@ -137,21 +159,44 @@ export default function DashboardPage() {
 
   // Determine default range from last invoice on mount
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !timeZoneReady) return;
     void (async () => {
       try {
-        const [taskSnap, lastInvoiceSnap] = await Promise.all([
+        const entriesBaseQuery =
+          profile.role === "admin"
+            ? query(
+                collection(db, "timeEntries"),
+                where("status", "==", "completed"),
+                orderBy("dateKey", "asc"),
+                limit(1)
+              )
+            : query(
+                collection(db, "timeEntries"),
+                where("userId", "==", profile.uid),
+                where("status", "==", "completed"),
+                orderBy("dateKey", "asc"),
+                limit(1)
+              );
+        const [taskSnap, lastInvoiceSnap, oldestEntrySnap] = await Promise.all([
           getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc"))),
-          getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(1)))
+          getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(1))),
+          getDocs(entriesBaseQuery)
         ]);
-        setTasks(taskSnap.docs.map(taskFromDoc));
+        setTasks(sortTasksLatestFirst(taskSnap.docs.map(taskFromDoc)));
         void loadInvoices();
         const lastInvoice = lastInvoiceSnap.docs[0]
           ? invoiceFromDoc(lastInvoiceSnap.docs[0])
           : null;
-        const defaultStart = lastInvoice
+        const invoiceDerivedStart = lastInvoice
           ? addDays(lastInvoice.dateRange.end, 1)
           : addDays(today, -30);
+        const oldestEntryDateKey = oldestEntrySnap.docs[0]
+          ? timeEntryFromDoc(oldestEntrySnap.docs[0]).dateKey
+          : null;
+        const defaultStart =
+          oldestEntryDateKey && oldestEntryDateKey > invoiceDerivedStart
+            ? oldestEntryDateKey
+            : invoiceDerivedStart;
         const start = defaultStart <= today ? defaultStart : today;
         setRange({ start, end: today });
         setRangeReady(true);
@@ -160,11 +205,11 @@ export default function DashboardPage() {
         setRangeReady(true);
       }
     })();
-  }, [profile, today, loadInvoices]);
+  }, [profile, today, timeZoneReady, loadInvoices]);
 
   // Load uninvoiced entries for the selected range
   const loadEntries = useCallback(async () => {
-    if (!profile || !rangeReady) return;
+    if (!profile || !rangeReady || !timeZoneReady) return;
     setLoading(true);
     setError(null);
     try {
@@ -188,13 +233,14 @@ export default function DashboardPage() {
               limit(200)
             );
       const snap = await getDocs(entriesQuery);
-      setEntries(snap.docs.map(timeEntryFromDoc).filter((e) => !e.invoiceId));
+      const uninvoicedEntries = snap.docs.map(timeEntryFromDoc).filter((entry) => !entry.invoiceId);
+      setEntries(sortEntriesLatestFirst(uninvoicedEntries));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load entries.");
     } finally {
       setLoading(false);
     }
-  }, [profile, rangeReady, range.start, range.end]);
+  }, [profile, rangeReady, timeZoneReady, range.start, range.end]);
 
   useEffect(() => {
     void loadEntries();
@@ -265,7 +311,8 @@ export default function DashboardPage() {
           dateKey: detailStartDatetime.substring(0, 10),
           durationSeconds,
           startTime: startDt.toISOString(),
-          endTime: endDt.toISOString()
+          endTime: endDt.toISOString(),
+          timeZone
         })
       });
       if (!response.ok) throw new Error(await response.text());

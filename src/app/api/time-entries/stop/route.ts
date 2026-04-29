@@ -1,5 +1,6 @@
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { calculateAmountCents } from "@/lib/billing/formatDuration";
+import { dateToDateKey } from "@/lib/dates/dateKeys";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAuthenticatedUser, jsonError } from "@/lib/firebase/auth";
 import { COLLECTIONS } from "@/lib/firebase/firestore";
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
       }
 
       const endTime = Timestamp.now();
+      const existingDateKey =
+        typeof entry.dateKey === "string" && entry.dateKey ? entry.dateKey : null;
+      const dateKey = existingDateKey ?? dateToDateKey(startTime.toDate(), body.timeZone);
       const durationSeconds = Math.max(
         1,
         Math.floor((endTime.toMillis() - startTime.toMillis()) / 1000)
@@ -59,7 +63,7 @@ export async function POST(request: Request) {
         Number(entry.hourlyRateCentsSnapshot ?? 0)
       );
 
-      await applyCalendarSummaryDelta(transaction, db, entry.dateKey, entry.userId, {
+      await applyCalendarSummaryDelta(transaction, db, dateKey, entry.userId, {
         totalDurationSeconds: durationSeconds,
         uninvoicedAmountCents: amountCentsSnapshot
       });
@@ -71,6 +75,7 @@ export async function POST(request: Request) {
         endTime,
         durationSeconds,
         amountCentsSnapshot,
+        dateKey,
         status: "completed",
         updatedAt: FieldValue.serverTimestamp()
       });

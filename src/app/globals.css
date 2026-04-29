@@ -687,7 +687,134 @@ a {
 }
 
 .task-edit-popup {
-  width: min(440px, 100%);
+  width: min(460px, 100%);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.task-edit-header {
+  padding: 20px 22px;
+  background:
+    linear-gradient(135deg, rgba(140, 232, 173, 0.12), rgba(123, 223, 242, 0.04)),
+    rgba(255, 255, 255, 0.015);
+}
+
+.task-edit-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.task-edit-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(140, 232, 173, 0.28);
+  border-radius: 7px;
+  color: var(--green);
+  background: rgba(140, 232, 173, 0.08);
+}
+
+.task-edit-body {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.task-edit-title-field .ui-input {
+  min-height: 46px;
+  font-size: 1rem;
+}
+
+.task-edit-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.72fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.task-rate-control {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  border: 1px solid rgba(51, 255, 102, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 8, 2, 0.72);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.task-rate-control:focus-within {
+  border-color: rgba(51, 255, 102, 0.7);
+  box-shadow:
+    inset 0 0 12px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(51, 255, 102, 0.15),
+    0 0 10px rgba(51, 255, 102, 0.12);
+}
+
+.task-rate-prefix,
+.task-rate-suffix {
+  color: rgba(51, 255, 102, 0.7);
+  font-size: 0.84rem;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.3);
+}
+
+.task-rate-prefix {
+  padding-left: 11px;
+}
+
+.task-rate-suffix {
+  padding-right: 11px;
+}
+
+.task-rate-control .ui-input {
+  min-height: 42px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 9px 7px;
+}
+
+.task-rate-control .ui-input:focus {
+  box-shadow: none;
+}
+
+.task-edit-field-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.task-status-panel {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.task-edit-actions {
+  margin: 0 -22px -22px;
+  padding: 16px 22px 22px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.task-edit-actions .entry-detail-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .entry-detail-times {
@@ -709,12 +836,17 @@ a {
 
 .entry-detail-cluster {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .entry-detail-cluster .field {
   min-width: 0;
+}
+
+.entry-detail-cluster input[type="datetime-local"] {
+  min-width: 0;
+  width: 100%;
 }
 
 .entry-detail-actions {
@@ -950,6 +1082,86 @@ a {
   -moz-appearance: textfield;
 }
 
+/* ─── Invoice creation review ─────────────────────────────── */
+
+.invoice-review-popup {
+  width: min(560px, 100%);
+}
+
+.invoice-review-lines {
+  display: grid;
+  gap: 0;
+}
+
+.invoice-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.invoice-review-task {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.invoice-review-total-hours {
+  border-bottom: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.invoice-review-total-edit {
+  display: grid;
+  gap: 7px;
+}
+
+.invoice-dollar-field {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  border: 1px solid rgba(51, 255, 102, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 8, 2, 0.72);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.invoice-dollar-field:focus-within {
+  border-color: rgba(51, 255, 102, 0.7);
+  box-shadow:
+    inset 0 0 12px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(51, 255, 102, 0.15),
+    0 0 10px rgba(51, 255, 102, 0.12);
+}
+
+.invoice-dollar-prefix {
+  padding-left: 12px;
+  color: rgba(51, 255, 102, 0.7);
+  font-size: 0.96rem;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.3);
+}
+
+.invoice-dollar-field .ui-input {
+  min-height: 42px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 7px;
+}
+
+.invoice-dollar-field .ui-input:focus {
+  box-shadow: none;
+}
+
 @media (max-width: 920px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1036,6 +1248,28 @@ a {
     padding: 22px 18px;
   }
 
+  .task-edit-popup {
+    padding: 0;
+  }
+
+  .task-edit-header,
+  .task-edit-body {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .task-edit-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-edit-actions {
+    margin-right: -18px;
+    margin-bottom: -22px;
+    margin-left: -18px;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
   .entry-detail-fields,
   .entry-detail-cluster {
     grid-template-columns: 1fr;
@@ -1053,11 +1287,13 @@ a {
   }
 
   .invoice-edit-row,
+  .invoice-review-row,
   .invoice-line {
     grid-template-columns: 1fr;
   }
 
   .invoice-edit-amount,
+  .invoice-review-row > strong,
   .invoice-line > span:last-child,
   .invoice-line > strong:last-child {
     justify-self: end;

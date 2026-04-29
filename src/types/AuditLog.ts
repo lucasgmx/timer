@@ -7,6 +7,7 @@ export type AuditAction =
   | "invoice.paid"
   | "invoice.unpaid"
   | "invoice.voided"
+  | "invoice.deleted"
   | "timeEntry.created"
   | "timeEntry.updated"
   | "timeEntry.stopped"

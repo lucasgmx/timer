@@ -148,18 +148,12 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
               <label htmlFor="timer-task">Task</label>
               <Input
                 id="timer-task"
-                list="timer-task-list"
                 value={taskInput}
                 onChange={(event) => setTaskInput(event.target.value)}
                 onKeyDown={(event) => { if (event.key === "Enter" && taskInput.trim()) void handleStart(); }}
-                placeholder="Type or pick a task…"
+                placeholder="Task name"
                 autoComplete="off"
               />
-              <datalist id="timer-task-list">
-                {activeTasks.map((task) => (
-                  <option key={task.id} value={task.title} />
-                ))}
-              </datalist>
             </div>
             <Button
               variant="primary"

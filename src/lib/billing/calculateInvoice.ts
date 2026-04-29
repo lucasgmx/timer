@@ -54,3 +54,59 @@ export function calculateInvoiceLineItems(
     totalCents: subtotalCents
   };
 }
+
+export function distributeInvoiceTotalCents(
+  lineItems: InvoiceLineItem[],
+  totalCents: number
+): InvoiceLineItem[] {
+  if (lineItems.length === 0) {
+    return [];
+  }
+
+  const safeTotalCents = Math.max(0, Math.round(totalCents));
+  const amountWeightTotal = lineItems.reduce(
+    (sum, item) => sum + Math.max(0, item.amountCents),
+    0
+  );
+  const durationWeightTotal = lineItems.reduce(
+    (sum, item) => sum + Math.max(0, item.durationSeconds),
+    0
+  );
+  const weights =
+    amountWeightTotal > 0
+      ? lineItems.map((item) => Math.max(0, item.amountCents))
+      : durationWeightTotal > 0
+        ? lineItems.map((item) => Math.max(0, item.durationSeconds))
+        : lineItems.map(() => 1);
+  const weightTotal =
+    amountWeightTotal > 0
+      ? amountWeightTotal
+      : durationWeightTotal > 0
+        ? durationWeightTotal
+        : lineItems.length;
+
+  const allocations = weights.map((weight) => {
+    const raw = (safeTotalCents * weight) / weightTotal;
+    return {
+      cents: Math.floor(raw),
+      remainder: raw - Math.floor(raw)
+    };
+  });
+
+  let remainingCents =
+    safeTotalCents - allocations.reduce((sum, allocation) => sum + allocation.cents, 0);
+
+  allocations
+    .map((allocation, index) => ({ ...allocation, index }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index)
+    .forEach(({ index }) => {
+      if (remainingCents <= 0) return;
+      allocations[index].cents += 1;
+      remainingCents -= 1;
+    });
+
+  return lineItems.map((item, index) => ({
+    ...item,
+    amountCents: allocations[index].cents
+  }));
+}

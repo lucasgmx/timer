@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClock, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
-import { Receipt, X } from "lucide-react";
+import { Check, Receipt, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
@@ -59,6 +59,21 @@ function formatShortDuration(totalSeconds: number) {
   const hours = Math.floor(safe / 3600);
   const minutes = Math.floor((safe % 3600) / 60);
   return `${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+function formatDollarsInput(cents: number) {
+  return (Math.max(0, cents) / 100).toFixed(2);
+}
+
+function parseDollarsToCents(value: string) {
+  const normalized = value.replace(/[$,\s]/g, "");
+  const match = normalized.match(/^(?:(\d+)(?:\.(\d{0,2}))?|\.(\d{1,2}))$/);
+
+  if (!match) return null;
+
+  const dollars = match[1] ?? "0";
+  const cents = match[2] ?? match[3] ?? "";
+  return Number(dollars) * 100 + Number(cents.padEnd(2, "0"));
 }
 
 function sortTasksLatestFirst(tasks: Task[]) {
@@ -110,6 +125,10 @@ export default function DashboardPage() {
   const [detailHours, setDetailHours] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
+  const [invoiceTotalInput, setInvoiceTotalInput] = useState("");
+
+  const tasksById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
 
   useEffect(() => {
     setTimeZone(getUserTimeZone());
@@ -249,13 +268,43 @@ export default function DashboardPage() {
   const totals = useMemo(
     () => {
       const seconds = entries.reduce((acc, e) => acc + e.durationSeconds, 0);
-      const hours = secondsToDecimalHours(seconds);
-      const rate = profile?.defaultHourlyRateCents ?? 0;
-      const cents = Math.round(hours * rate);
+      const cents = entries.reduce(
+        (acc, entry) => acc + Math.max(0, entry.amountCentsSnapshot),
+        0
+      );
       return { seconds, cents };
     },
-    [entries, profile]
+    [entries]
   );
+
+  const invoiceTaskRows = useMemo(() => {
+    const rows = new Map<
+      string,
+      {
+        key: string;
+        taskTitle: string;
+        durationSeconds: number;
+      }
+    >();
+
+    for (const entry of entries) {
+      const task = tasksById.get(entry.taskId);
+      const key = entry.taskId || entry.id;
+      const existing = rows.get(key);
+
+      if (existing) {
+        existing.durationSeconds += entry.durationSeconds;
+      } else {
+        rows.set(key, {
+          key,
+          taskTitle: task?.title ?? "Task",
+          durationSeconds: entry.durationSeconds
+        });
+      }
+    }
+
+    return Array.from(rows.values()).sort((a, b) => a.taskTitle.localeCompare(b.taskTitle));
+  }, [entries, tasksById]);
 
   function dateToDatetimeLocal(date: Date): string {
     const y = date.getFullYear();
@@ -326,8 +375,27 @@ export default function DashboardPage() {
   }
 
 
-  async function handleInvoiceNow() {
+  function openInvoiceReview() {
     if (!profile || entries.length === 0) return;
+    setInvoiceError(null);
+    setInvoiceTotalInput(formatDollarsInput(totals.cents));
+    setInvoiceReviewOpen(true);
+  }
+
+  function closeInvoiceReview() {
+    if (invoicing) return;
+    setInvoiceReviewOpen(false);
+  }
+
+  async function handleCreateInvoice() {
+    if (!profile || entries.length === 0) return;
+    const totalCents = parseDollarsToCents(invoiceTotalInput);
+
+    if (totalCents === null) {
+      setInvoiceError("Enter a valid invoice total.");
+      return;
+    }
+
     setInvoicing(true);
     setInvoiceError(null);
     try {
@@ -339,12 +407,13 @@ export default function DashboardPage() {
           clientName: "Marques LLC",
           dateRange: range,
           dueDate: null,
+          totalCents,
           timeEntryIds: entries.map((e) => e.id)
         })
       });
       if (!response.ok) throw new Error(await response.text());
       const result = (await response.json()) as { id: string };
-      router.push(`/invoices/${result.id}?edit=true`);
+      router.push(`/invoices/${result.id}`);
     } catch (e) {
       setInvoiceError(e instanceof Error ? e.message : "Failed to generate invoice.");
       setInvoicing(false);
@@ -382,13 +451,15 @@ export default function DashboardPage() {
                 <button
                   className="invoice-now-btn"
                   disabled={invoicing || entries.length === 0}
-                  onClick={() => void handleInvoiceNow()}
+                  onClick={openInvoiceReview}
                 >
                   <Receipt size={20} />
                   {invoicing ? "Generating…" : "Invoice Now"}
                 </button>
               ) : null}
-              {invoiceError ? <div className="error-state">{invoiceError}</div> : null}
+              {!invoiceReviewOpen && invoiceError ? (
+                <div className="error-state">{invoiceError}</div>
+              ) : null}
             </div>
           </Card>
 
@@ -496,6 +567,80 @@ export default function DashboardPage() {
             </div>
           );
         })() : null}
+
+        {invoiceReviewOpen ? (
+          <div className="entry-detail-overlay" onClick={closeInvoiceReview}>
+            <div
+              className="entry-detail-popup invoice-review-popup"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="entry-detail-header">
+                <span className="entry-detail-title">Review invoice</span>
+                <button
+                  className="entry-detail-popup-close"
+                  onClick={closeInvoiceReview}
+                  aria-label="Close"
+                  disabled={invoicing}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="invoice-review-lines">
+                {invoiceTaskRows.map((row) => (
+                  <div key={row.key} className="invoice-review-row">
+                    <span className="invoice-review-task">{row.taskTitle}</span>
+                    <strong className="mono-number">
+                      {secondsToDecimalHours(row.durationSeconds).toFixed(2)} hrs
+                    </strong>
+                  </div>
+                ))}
+                <div className="invoice-review-row invoice-review-total-hours">
+                  <span>Total time</span>
+                  <strong className="mono-number">
+                    {secondsToDecimalHours(totals.seconds).toFixed(2)} hrs
+                  </strong>
+                </div>
+              </div>
+
+              <div className="invoice-review-total-edit">
+                <label className="fine-print" htmlFor="invoice-total">
+                  Invoice total
+                </label>
+                <div className="invoice-dollar-field">
+                  <span className="invoice-dollar-prefix">$</span>
+                  <Input
+                    id="invoice-total"
+                    inputMode="decimal"
+                    value={invoiceTotalInput}
+                    onChange={(e) => setInvoiceTotalInput(e.target.value)}
+                    disabled={invoicing}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              {invoiceError ? <div className="error-state">{invoiceError}</div> : null}
+
+              <div className="entry-detail-actions">
+                <button
+                  className="entry-detail-close"
+                  onClick={closeInvoiceReview}
+                  disabled={invoicing}
+                >
+                  <X size={14} /> Cancel
+                </button>
+                <button
+                  className="entry-detail-save"
+                  disabled={invoicing}
+                  onClick={() => void handleCreateInvoice()}
+                >
+                  <Check size={14} /> {invoicing ? "Creating…" : "Create invoice"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {invoicesError ? <div className="error-state">{invoicesError}</div> : null}
         <Card title="Invoice history" icon={<FontAwesomeIcon icon={faFileInvoice} />}>

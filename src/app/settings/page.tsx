@@ -51,6 +51,17 @@ export default function SettingsPage() {
 
   async function handleEditSave() {
     if (!editingTask) return;
+    const trimmedTitle = editTitle.trim();
+    const hourlyRate = Number(editRate);
+    if (!trimmedTitle) {
+      setEditError("Task name is required.");
+      return;
+    }
+    if (!editRate.trim() || !Number.isFinite(hourlyRate) || hourlyRate < 0) {
+      setEditError("Hourly rate must be zero or more.");
+      return;
+    }
+
     setEditBusy(true);
     setEditError(null);
     try {
@@ -60,8 +71,8 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           id: editingTask.id,
-          title: editTitle,
-          hourlyRateCentsOverride: Math.round(Number(editRate) * 100),
+          title: trimmedTitle,
+          hourlyRateCentsOverride: Math.round(hourlyRate * 100),
           status: editingTask.status
         })
       });
@@ -74,6 +85,13 @@ export default function SettingsPage() {
       setEditBusy(false);
     }
   }
+
+  const editRateValue = Number(editRate);
+  const canSaveTask =
+    editTitle.trim().length > 0 &&
+    editRate.trim().length > 0 &&
+    Number.isFinite(editRateValue) &&
+    editRateValue >= 0;
 
   async function saveTask(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -195,19 +213,27 @@ export default function SettingsPage() {
         {editingTask ? (
           <div className="entry-detail-overlay" onClick={() => setEditingTask(null)}>
             <div className="entry-detail-popup task-edit-popup" onClick={(e) => e.stopPropagation()}>
-              <div className="entry-detail-header">
-                <span className="entry-detail-title">Edit task</span>
-                <div className="entry-detail-header-actions">
-                  <span className={`task-status-chip ${editingTask.status === "archived" ? "archived" : ""}`}>
-                    {editingTask.status}
+              <div className="entry-detail-header task-edit-header">
+                <div className="task-edit-heading">
+                  <span className="task-edit-icon" aria-hidden="true">
+                    <Pencil size={16} />
                   </span>
+                  <span className="entry-detail-title">Edit task</span>
+                </div>
+                <div className="entry-detail-header-actions">
                   <button className="entry-detail-popup-close" onClick={() => setEditingTask(null)} aria-label="Close">
                     <X size={16} />
                   </button>
                 </div>
               </div>
-              <div className="entry-detail-fields">
-                <div className="field">
+              <form
+                className="task-edit-body"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleEditSave();
+                }}
+              >
+                <div className="field task-edit-title-field">
                   <label htmlFor="edit-task-title">Task name</label>
                   <Input
                     id="edit-task-title"
@@ -216,31 +242,50 @@ export default function SettingsPage() {
                     autoFocus
                   />
                 </div>
-                <div className="field">
-                  <label htmlFor="edit-task-rate">Rate ($/hr)</label>
-                  <Input
-                    id="edit-task-rate"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editRate}
-                    onChange={(e) => setEditRate(e.target.value)}
-                  />
+
+                <div className="task-edit-meta-grid">
+                  <div className="field">
+                    <label htmlFor="edit-task-rate">Hourly rate</label>
+                    <div className="task-rate-control">
+                      <span className="task-rate-prefix" aria-hidden="true">$</span>
+                      <Input
+                        id="edit-task-rate"
+                        className="task-rate-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editRate}
+                        onChange={(e) => setEditRate(e.target.value)}
+                        required
+                      />
+                      <span className="task-rate-suffix">/hr</span>
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <span className="task-edit-field-label">Status</span>
+                    <div className="task-status-panel">
+                      <span className={`task-status-chip ${editingTask.status === "archived" ? "archived" : ""}`}>
+                        {editingTask.status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              {editError ? <div className="error-state">{editError}</div> : null}
-              <div className="entry-detail-actions">
-                <button className="entry-detail-close" onClick={() => setEditingTask(null)}>
-                  <X size={14} /> Cancel
-                </button>
-                <button
-                  className="entry-detail-save"
-                  disabled={editBusy || !editTitle.trim()}
-                  onClick={() => void handleEditSave()}
-                >
-                  {editBusy ? "Saving…" : "Save"}
-                </button>
-              </div>
+
+                {editError ? <div className="error-state">{editError}</div> : null}
+                <div className="entry-detail-actions task-edit-actions">
+                  <button type="button" className="entry-detail-close" onClick={() => setEditingTask(null)}>
+                    <X size={14} /> Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="entry-detail-save"
+                    disabled={editBusy || !canSaveTask}
+                  >
+                    <Save size={14} /> {editBusy ? "Saving…" : "Save task"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         ) : null}

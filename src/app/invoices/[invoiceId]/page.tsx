@@ -2,12 +2,11 @@
 
 import confetti from "canvas-confetti";
 import { doc, getDoc } from "firebase/firestore";
-import { Ban, CheckCircle2, Pencil, RotateCcw } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { InvoiceEditForm } from "@/components/invoices/InvoiceEditForm";
 import { InvoicePreview } from "@/components/invoices/InvoicePreview";
-import { InvoiceStatusBadge } from "@/components/invoices/InvoiceStatusBadge";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +25,7 @@ export default function InvoiceDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(() => searchParams.get("edit") === "true");
-  const statusBadgeRef = useRef<HTMLDivElement>(null);
+  const statusBadgeRef = useRef<HTMLHeadingElement>(null);
 
   const loadInvoice = useCallback(async () => {
     setLoading(true);
@@ -91,6 +90,38 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  async function deleteInvoice() {
+    if (!invoice) return;
+    if (!confirm(`Delete invoice ${invoice.invoiceNumber}? This will return its time entries to uninvoiced work.`)) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const token = await getToken();
+      const response = await fetch("/api/invoices/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ invoiceId: params.invoiceId })
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      router.push("/dashboard");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete invoice.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSaveLineItems(
     lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[]
   ) {
@@ -119,8 +150,7 @@ export default function InvoiceDetailPage() {
         <div className="split">
           <div>
             <div className="eyebrow">invoice</div>
-            <h1 className="page-title">{invoice?.invoiceNumber ?? "Invoice"}</h1>
-            {invoice ? <div ref={statusBadgeRef} style={{ marginTop: "6px" }}><InvoiceStatusBadge status={invoice.status} /></div> : null}
+            <h1 className="page-title" ref={statusBadgeRef}>{invoice?.invoiceNumber ?? "Invoice"}</h1>
           </div>
           {profile?.role === "admin" && invoice && !editMode ? (
             <div className="cluster">
@@ -152,15 +182,15 @@ export default function InvoiceDetailPage() {
                   Mark unpaid
                 </Button>
               ) : null}
-              {invoice.status !== "void" ? (
+              {invoice.status !== "paid" ? (
                 <div style={{ display: "flex", borderLeft: "1px solid var(--border)", paddingLeft: "8px" }}>
                   <Button
                     variant="danger"
-                    icon={<Ban />}
+                    icon={<Trash2 />}
                     disabled={busy}
-                    onClick={() => updateStatus("/api/invoices/void")}
+                    onClick={() => void deleteInvoice()}
                   >
-                    Void
+                    Delete
                   </Button>
                 </div>
               ) : null}

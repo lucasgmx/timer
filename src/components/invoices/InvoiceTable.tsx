@@ -78,7 +78,6 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
             <tr key={invoice.id}>
               <td>
                 <Link href={`/invoices/${invoice.id}`}>{invoice.invoiceNumber}</Link>
-                <div className="fine-print">{invoice.clientName}</div>
               </td>
               <td className="mono-number">
                 {formatDateKey(invoice.dateRange.start)} &rarr; {formatDateKey(invoice.dateRange.end)}

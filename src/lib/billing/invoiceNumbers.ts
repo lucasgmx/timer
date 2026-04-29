@@ -1,8 +1,8 @@
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 
-export function formatInvoiceNumber(year: number, sequence: number) {
-  return `TMR-${year}-${String(sequence).padStart(4, "0")}`;
+export function formatInvoiceNumber(dateKey: string, sequence: number) {
+  return `${dateKey}-${String(sequence).padStart(2, "0")}`;
 }
 
 export async function reserveInvoiceNumber(
@@ -10,8 +10,11 @@ export async function reserveInvoiceNumber(
   transaction: Transaction,
   now = new Date()
 ) {
-  const year = now.getUTCFullYear();
-  const counterRef = db.collection("invoiceCounters").doc(String(year));
+  const yy = String(now.getUTCFullYear()).slice(-2);
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(now.getUTCDate()).padStart(2, "0");
+  const dateKey = `${yy}${mm}${dd}`;
+  const counterRef = db.collection("invoiceCounters").doc(dateKey);
   const counterSnap = await transaction.get(counterRef);
   const currentSequence = counterSnap.exists
     ? Number(counterSnap.data()?.nextSequence ?? 1)
@@ -20,12 +23,12 @@ export async function reserveInvoiceNumber(
   transaction.set(
     counterRef,
     {
-      year,
+      dateKey,
       nextSequence: currentSequence + 1,
       updatedAt: FieldValue.serverTimestamp()
     },
     { merge: true }
   );
 
-  return formatInvoiceNumber(year, currentSequence);
+  return formatInvoiceNumber(dateKey, currentSequence);
 }

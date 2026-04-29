@@ -1,5 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { calculateInvoiceLineItems } from "@/lib/billing/calculateInvoice";
+import {
+  calculateInvoiceLineItems,
+  distributeInvoiceTotalCents
+} from "@/lib/billing/calculateInvoice";
 import { formatInvoiceNumber } from "@/lib/billing/invoiceNumbers";
 import { adminDb } from "@/lib/firebase/admin";
 import { jsonError, requireRole } from "@/lib/firebase/auth";
@@ -78,13 +81,16 @@ export async function POST(request: Request) {
       );
 
       const now = new Date();
-      const year = now.getUTCFullYear();
-      const counterRef = db.collection(COLLECTIONS.invoiceCounters).doc(String(year));
+      const yy = String(now.getUTCFullYear()).slice(-2);
+      const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(now.getUTCDate()).padStart(2, "0");
+      const dateKey = `${yy}${mm}${dd}`;
+      const counterRef = db.collection(COLLECTIONS.invoiceCounters).doc(dateKey);
       const counterSnap = await transaction.get(counterRef);
       const sequence = counterSnap.exists
         ? Number(counterSnap.data()?.nextSequence ?? 1)
         : 1;
-      const invoiceNumber = formatInvoiceNumber(year, sequence);
+      const invoiceNumber = formatInvoiceNumber(dateKey, sequence);
 
       const tasks = new Map(
         taskSnaps
@@ -114,13 +120,18 @@ export async function POST(request: Request) {
         })),
         tasks
       );
+      const totalCents = body.totalCents ?? invoiceSnapshot.totalCents;
+      const lineItems =
+        body.totalCents === undefined
+          ? invoiceSnapshot.lineItems
+          : distributeInvoiceTotalCents(invoiceSnapshot.lineItems, body.totalCents);
 
       const invoiceRef = db.collection(COLLECTIONS.invoices).doc();
 
       await applyCalendarSummaryDeltas(
         transaction,
         db,
-        invoiceSnapshot.lineItems.map((lineItem) => ({
+        lineItems.map((lineItem) => ({
           dateKey: lineItem.dateKey,
           userId: lineItem.userId,
           delta: {
@@ -135,9 +146,9 @@ export async function POST(request: Request) {
         clientName: body.clientName,
         status: "unpaid",
         dateRange: body.dateRange,
-        lineItems: invoiceSnapshot.lineItems,
-        subtotalCents: invoiceSnapshot.subtotalCents,
-        totalCents: invoiceSnapshot.totalCents,
+        lineItems,
+        subtotalCents: totalCents,
+        totalCents,
         currency: "USD",
         createdAt: FieldValue.serverTimestamp(),
         sentAt: null,
@@ -146,7 +157,7 @@ export async function POST(request: Request) {
         createdByUserId: actor.uid
       });
 
-      for (const lineItem of invoiceSnapshot.lineItems) {
+      for (const lineItem of lineItems) {
         transaction.update(db.collection(COLLECTIONS.timeEntries).doc(lineItem.timeEntryId), {
           status: "invoiced",
           invoiceId: invoiceRef.id,
@@ -160,7 +171,7 @@ export async function POST(request: Request) {
       transaction.set(
         counterRef,
         {
-          year,
+          dateKey,
           nextSequence: sequence + 1,
           updatedAt: FieldValue.serverTimestamp()
         },
@@ -176,8 +187,9 @@ export async function POST(request: Request) {
         invoiceRef.id,
         {
           invoiceNumber,
-          lineItemCount: invoiceSnapshot.lineItems.length,
-          totalCents: invoiceSnapshot.totalCents,
+          lineItemCount: lineItems.length,
+          calculatedTotalCents: invoiceSnapshot.totalCents,
+          totalCents,
           dateRange: body.dateRange
         }
       );
@@ -185,7 +197,7 @@ export async function POST(request: Request) {
       return {
         id: invoiceRef.id,
         invoiceNumber,
-        totalCents: invoiceSnapshot.totalCents
+        totalCents
       };
     });
 

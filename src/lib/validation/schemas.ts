@@ -52,6 +52,7 @@ export const generateInvoiceSchema = z.object({
   clientName: z.string().trim().min(1).max(160),
   dateRange: dateRangeSchema,
   dueDate: dateKeySchema.optional().nullable(),
+  totalCents: z.number().int().nonnegative().max(100_000_000).optional(),
   timeEntryIds: z.array(nonEmptyIdSchema).min(1).max(200).optional()
 });
 

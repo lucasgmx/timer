@@ -62,8 +62,15 @@ export function Header() {
           </div>
         ))}
       </div>
-      <div className="cluster">
-        <Button variant="ghost" icon={<LogOut />} onClick={signOut} title="Sign out">
+      <div className="cluster topbar-actions">
+        <Button
+          className="topbar-sign-out"
+          variant="ghost"
+          icon={<LogOut />}
+          onClick={signOut}
+          title="Sign out"
+          aria-label="Sign out"
+        >
           Sign out
         </Button>
       </div>

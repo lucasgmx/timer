@@ -22,7 +22,12 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { formatCents, formatDuration, secondsToDecimalHours } from "@/lib/billing/formatDuration";
+import {
+  calculateAmountCents,
+  formatCents,
+  formatDuration,
+  secondsToDecimalHours
+} from "@/lib/billing/formatDuration";
 import { getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
 import {
@@ -258,13 +263,10 @@ export default function DashboardPage() {
   const totals = useMemo(
     () => {
       const seconds = entries.reduce((acc, e) => acc + e.durationSeconds, 0);
-      const cents = entries.reduce(
-        (acc, entry) => acc + Math.max(0, entry.amountCentsSnapshot),
-        0
-      );
+      const cents = calculateAmountCents(seconds, profile?.defaultHourlyRateCents ?? 0);
       return { seconds, cents };
     },
-    [entries]
+    [entries, profile?.defaultHourlyRateCents]
   );
 
   const uninvoicedWorkRange = useMemo<DateRange>(() => {

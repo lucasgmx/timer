@@ -4,12 +4,13 @@
   "private": true,
   "description": "Internal time tracking and invoicing platform for marques.llc.",
   "scripts": {
-    "dev": "sudo kill -9 $(sudo lsof -t -i:6001) 2>/dev/null; next dev -p 6001",
+    "dev": "npm run kill && next dev -p 6001",
     "build": "next build",
     "start": "next start -p 6001",
     "user:create": "node scripts/create-user.mjs",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "kill": "echo \"$SUDO_PASS\" | sudo -S kill -9 $(echo \"$SUDO_PASS\" | sudo -S lsof -t -i:6001) 2>/dev/null || true"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",

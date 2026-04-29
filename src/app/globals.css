@@ -320,11 +320,12 @@ a {
 .running-task-name::before {
   content: '';
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #f87171;
   flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.8);
   animation: blink-dot 1.2s ease-in-out infinite;
 }
 
@@ -660,7 +661,7 @@ a {
   border-radius: var(--radius);
   padding: 28px 32px;
   min-width: 320px;
-  max-width: 440px;
+  max-width: 540px;
   width: 100%;
   display: grid;
   gap: 16px;

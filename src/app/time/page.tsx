@@ -30,7 +30,7 @@ export default function TimePage() {
     if (!profile) return;
 
     const unsubTasks = onSnapshot(
-      query(collection(db, "tasks"), orderBy("title", "asc")),
+      query(collection(db, "tasks"), orderBy("updatedAt", "desc")),
       (snap) => {
         setTasks(snap.docs.map(taskFromDoc));
       }

@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
-    const snap = await getDocs(query(collection(db, "tasks"), orderBy("title", "asc")));
+    const snap = await getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc")));
     setTasks(snap.docs.map(taskFromDoc));
   }, []);
 

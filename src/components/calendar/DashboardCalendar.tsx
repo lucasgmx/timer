@@ -8,6 +8,11 @@ import type { DateRange } from "./DateRangePicker";
 
 const DOW_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
+function fmtKey(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 type DashboardCalendarProps = {
   range: DateRange;
   onRangeChange: (range: DateRange) => void;
@@ -141,8 +146,8 @@ export function DashboardCalendar({
         {selecting
           ? "Click to set end date"
           : range.start === range.end
-            ? range.start
-            : `${range.start} → ${range.end}`}
+            ? fmtKey(range.start)
+            : `${fmtKey(range.start)} → ${fmtKey(range.end)}`}
       </div>
     </div>
   );

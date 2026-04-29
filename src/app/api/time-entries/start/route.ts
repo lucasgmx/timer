@@ -62,6 +62,8 @@ export async function POST(request: Request) {
         }
         hourlyRateCentsSnapshot = Number(taskSnap.data()?.hourlyRateCentsOverride ?? actor.defaultHourlyRateCents ?? 0);
         resolvedTaskId = body.taskId;
+        // Touch updatedAt so the task floats to the top of the recency sort
+        transaction.update(taskRef, { updatedAt: FieldValue.serverTimestamp() });
       } else {
         // New task path — create it inside this transaction
         transaction.set(taskRef, {

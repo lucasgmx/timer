@@ -28,7 +28,7 @@ export function TimeEntryForm({
   const activeTasks = tasks.filter((task) => task.status === "active");
   const [taskId, setTaskId] = useState(activeTasks[0]?.id ?? "");
   const [dateKey, setDateKey] = useState(todayDateKey());
-  const [hours, setHours] = useState("1.00");
+  const [hours, setHours] = useState("1:00");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +36,12 @@ export function TimeEntryForm({
     if (editingEntry) {
       setTaskId(editingEntry.taskId);
       setDateKey(editingEntry.dateKey);
-      setHours((editingEntry.durationSeconds / 3600).toFixed(2));
+      
+      const totalSeconds = editingEntry.durationSeconds;
+      const safe = Math.max(0, Math.floor(totalSeconds));
+      const h = Math.floor(safe / 3600);
+      const m = Math.floor((safe % 3600) / 60);
+      setHours(`${h}:${String(m).padStart(2, "0")}`);
     }
   }, [editingEntry]);
 
@@ -52,7 +57,13 @@ export function TimeEntryForm({
     setError(null);
 
     try {
-      const parsedHours = Number(hours);
+      let parsedHours = NaN;
+      const parts = hours.split(":");
+      if (parts.length === 2) {
+        parsedHours = parseInt(parts[0] || "0", 10) + parseInt(parts[1] || "0", 10) / 60;
+      } else {
+        parsedHours = Number(hours);
+      }
 
       if (!Number.isFinite(parsedHours) || parsedHours <= 0) {
         throw new Error("Enter a positive duration.");
@@ -77,7 +88,7 @@ export function TimeEntryForm({
         throw new Error(await response.text());
       }
 
-      setHours("1.00");
+      setHours("1:00");
       await onSaved();
     } catch (apiError) {
       setError(apiError instanceof Error ? apiError.message : "Unable to save entry.");
@@ -128,9 +139,8 @@ export function TimeEntryForm({
             <label htmlFor="manual-hours">Hours</label>
             <Input
               id="manual-hours"
-              type="number"
-              min="0.01"
-              step="0.01"
+              type="text"
+              placeholder="0:00"
               value={hours}
               onChange={(event) => setHours(event.target.value)}
             />

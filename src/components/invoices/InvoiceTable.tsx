@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import confetti from "canvas-confetti";
 import { Table } from "@/components/ui/Table";
 import { formatCents } from "@/lib/billing/formatDuration";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { Invoice, InvoiceStatus } from "@/types";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
+
+function formatDateKey(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
   const { getToken } = useAuth();
@@ -35,6 +41,14 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
         body: JSON.stringify({ invoiceId: invoice.id })
       });
       if (!response.ok) return;
+      if (nextStatus === "paid") {
+        void confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ["#52ff8a", "#fffb6e", "#6ec7ff", "#ff6ec7", "#ffb347"],
+        });
+      }
       setInvoices((prev) =>
         prev.map((inv) =>
           inv.id === invoice.id ? { ...inv, status: nextStatus } : inv
@@ -50,9 +64,9 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
       <thead>
         <tr>
           <th>Invoice</th>
-          <th>Status</th>
           <th>Range</th>
           <th className="numeric">Total</th>
+          <th style={{ width: "1%", whiteSpace: "nowrap" }}>Status</th>
         </tr>
       </thead>
       <tbody>
@@ -62,6 +76,10 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
                 <Link href={`/invoices/${invoice.id}`}>{invoice.invoiceNumber}</Link>
                 <div className="fine-print">{invoice.clientName}</div>
               </td>
+              <td className="mono-number">
+                {formatDateKey(invoice.dateRange.start)} &rarr; {formatDateKey(invoice.dateRange.end)}
+              </td>
+              <td className="numeric mono-number">{formatCents(invoice.totalCents)}</td>
               <td>
                 {invoice.status !== "void" ? (
                   <button
@@ -76,10 +94,6 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
                   <InvoiceStatusBadge status={invoice.status} />
                 )}
               </td>
-              <td className="mono-number">
-                {invoice.dateRange.start} &rarr; {invoice.dateRange.end}
-              </td>
-              <td className="numeric mono-number">{formatCents(invoice.totalCents)}</td>
             </tr>
           ))}
       </tbody>

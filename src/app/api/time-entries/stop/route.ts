@@ -64,6 +64,9 @@ export async function POST(request: Request) {
         uninvoicedAmountCents: amountCentsSnapshot
       });
 
+      const taskRef = db.collection(COLLECTIONS.tasks).doc(entry.taskId);
+      transaction.update(taskRef, { updatedAt: FieldValue.serverTimestamp() });
+
       transaction.update(timeEntryRef, {
         endTime,
         durationSeconds,

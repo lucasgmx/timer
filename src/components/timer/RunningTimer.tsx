@@ -19,5 +19,13 @@ export function RunningTimer({ startTime }: { startTime?: Date | null }) {
     ? Math.max(0, Math.floor((now - startTime.getTime()) / 1000))
     : 0;
 
+  useEffect(() => {
+    if (!startTime) return;
+    document.title = `${formatDuration(elapsedSeconds)} | Timer`;
+    return () => {
+      document.title = "Timer";
+    };
+  }, [elapsedSeconds, startTime]);
+
   return <div className="timer-display mono-number">{formatDuration(elapsedSeconds)}</div>;
 }

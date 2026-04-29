@@ -22,7 +22,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { formatCents, formatDuration } from "@/lib/billing/formatDuration";
+import { formatCents, formatDuration, secondsToDecimalHours } from "@/lib/billing/formatDuration";
 import { addDays, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
 import {
@@ -42,7 +42,6 @@ function formatDateKey(key: string) {
 }
 
 function formatDateRange(start: string, end: string) {
-  if (start === end) return formatDateKey(start);
   const s = new Date(`${start}T00:00:00.000Z`);
   const e = new Date(`${end}T00:00:00.000Z`);
   const sameYear = s.getUTCFullYear() === e.getUTCFullYear();
@@ -56,10 +55,12 @@ function formatDateRange(start: string, end: string) {
   const endFmt = e.toLocaleDateString("en-US", {
     ...(sameMonth ? {} : { month: "short" }),
     day: "numeric",
-    year: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
     timeZone: "UTC"
   });
-  return `${startFmt} – ${endFmt}`;
+  const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+  const dayLabel = days === 1 ? "1 day" : `${days} days`;
+  return `${startFmt} → ${endFmt} (${dayLabel})`;
 }
 
 function formatShortDuration(totalSeconds: number) {
@@ -109,6 +110,16 @@ export default function DashboardPage() {
     }
   }, [profile]);
 
+  const loadTasks = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const taskSnap = await getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc")));
+      setTasks(taskSnap.docs.map(taskFromDoc));
+    } catch {
+      // tasks will remain stale; not critical
+    }
+  }, [profile]);
+
   // Real-time subscription to running entry
   useEffect(() => {
     if (!profile) return;
@@ -130,7 +141,7 @@ export default function DashboardPage() {
     void (async () => {
       try {
         const [taskSnap, lastInvoiceSnap] = await Promise.all([
-          getDocs(query(collection(db, "tasks"), orderBy("title", "asc"))),
+          getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc"))),
           getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(1)))
         ]);
         setTasks(taskSnap.docs.map(taskFromDoc));
@@ -190,12 +201,14 @@ export default function DashboardPage() {
   }, [loadEntries]);
 
   const totals = useMemo(
-    () =>
-      entries.reduce(
-        (acc, e) => ({ seconds: acc.seconds + e.durationSeconds, cents: acc.cents + e.amountCentsSnapshot }),
-        { seconds: 0, cents: 0 }
-      ),
-    [entries]
+    () => {
+      const seconds = entries.reduce((acc, e) => acc + e.durationSeconds, 0);
+      const hours = secondsToDecimalHours(seconds);
+      const rate = profile?.defaultHourlyRateCents ?? 0;
+      const cents = Math.round(hours * rate);
+      return { seconds, cents };
+    },
+    [entries, profile]
   );
 
   function dateToDatetimeLocal(date: Date): string {
@@ -214,7 +227,7 @@ export default function DashboardPage() {
     setDetailStartDatetime(dateToDatetimeLocal(entry.startTime));
     const entryEnd = entry.endTime ?? new Date(entry.startTime.getTime() + entry.durationSeconds * 1000);
     setDetailEndDatetime(dateToDatetimeLocal(entryEnd));
-    setDetailHours((entry.durationSeconds / 3600).toFixed(2));
+    setDetailHours(formatShortDuration(entry.durationSeconds));
     setDetailError(null);
   }
 
@@ -335,7 +348,7 @@ export default function DashboardPage() {
           <TimerCard
             tasks={tasks}
             runningEntry={runningEntry}
-            onChanged={loadEntries}
+            onChanged={async () => { await Promise.all([loadTasks(), loadEntries()]); }}
           />
         </div>
 
@@ -381,7 +394,7 @@ export default function DashboardPage() {
                         const start = new Date(detailStartDatetime);
                         const end = new Date(e.target.value);
                         const secs = (end.getTime() - start.getTime()) / 1000;
-                        if (secs > 0) setDetailHours((secs / 3600).toFixed(2));
+                        if (secs > 0) setDetailHours(formatShortDuration(secs));
                       }}
                     />
                   </div>
@@ -395,13 +408,18 @@ export default function DashboardPage() {
                   <label htmlFor="detail-hours">Hours</label>
                   <Input
                     id="detail-hours"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
+                    type="text"
+                    placeholder="0:00"
                     value={detailHours}
                     onChange={(e) => {
                       setDetailHours(e.target.value);
-                      const hours = parseFloat(e.target.value);
+                      const parts = e.target.value.split(":");
+                      let hours = NaN;
+                      if (parts.length === 2) {
+                        hours = parseInt(parts[0] || "0", 10) + parseInt(parts[1] || "0", 10) / 60;
+                      } else {
+                        hours = parseFloat(e.target.value);
+                      }
                       if (Number.isFinite(hours) && hours > 0) {
                         const start = new Date(detailStartDatetime);
                         const end = new Date(start.getTime() + hours * 3600 * 1000);

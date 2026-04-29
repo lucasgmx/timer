@@ -23,7 +23,7 @@ import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { formatCents, formatDuration, secondsToDecimalHours } from "@/lib/billing/formatDuration";
-import { addDays, getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
+import { getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
 import {
   invoiceFromDoc,
@@ -176,7 +176,7 @@ export default function DashboardPage() {
     return unsub;
   }, [profile]);
 
-  // Determine default range from last invoice on mount
+  // Determine default range from uninvoiced work on mount
   useEffect(() => {
     if (!profile || !timeZoneReady) return;
     void (async () => {
@@ -196,27 +196,17 @@ export default function DashboardPage() {
                 orderBy("dateKey", "asc"),
                 limit(1)
               );
-        const [taskSnap, lastInvoiceSnap, oldestEntrySnap] = await Promise.all([
+        const [taskSnap, oldestEntrySnap] = await Promise.all([
           getDocs(query(collection(db, "tasks"), orderBy("updatedAt", "desc"))),
-          getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(1))),
           getDocs(entriesBaseQuery)
         ]);
         setTasks(sortTasksLatestFirst(taskSnap.docs.map(taskFromDoc)));
         void loadInvoices();
-        const lastInvoice = lastInvoiceSnap.docs[0]
-          ? invoiceFromDoc(lastInvoiceSnap.docs[0])
-          : null;
-        const invoiceDerivedStart = lastInvoice
-          ? addDays(lastInvoice.dateRange.end, 1)
-          : addDays(today, -30);
         const oldestEntryDateKey = oldestEntrySnap.docs[0]
           ? timeEntryFromDoc(oldestEntrySnap.docs[0]).dateKey
           : null;
-        const defaultStart =
-          oldestEntryDateKey && oldestEntryDateKey > invoiceDerivedStart
-            ? oldestEntryDateKey
-            : invoiceDerivedStart;
-        const start = defaultStart <= today ? defaultStart : today;
+        const start =
+          oldestEntryDateKey && oldestEntryDateKey <= today ? oldestEntryDateKey : today;
         setRange({ start, end: today });
         setRangeReady(true);
       } catch (e) {
@@ -276,6 +266,19 @@ export default function DashboardPage() {
     },
     [entries]
   );
+
+  const uninvoicedWorkRange = useMemo<DateRange>(() => {
+    if (entries.length === 0) {
+      return { start: today, end: today };
+    }
+
+    const start = entries.reduce(
+      (oldest, entry) => (entry.dateKey < oldest ? entry.dateKey : oldest),
+      entries[0].dateKey
+    );
+
+    return { start, end: today };
+  }, [entries, today]);
 
   const invoiceTaskRows = useMemo(() => {
     const rows = new Map<
@@ -405,7 +408,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           clientName: "Marques LLC",
-          dateRange: range,
+          dateRange: uninvoicedWorkRange,
           dueDate: null,
           totalCents,
           timeEntryIds: entries.map((e) => e.id)
@@ -431,7 +434,7 @@ export default function DashboardPage() {
           <Card title="Uninvoiced work" icon={<FontAwesomeIcon icon={faMoneyBillWave} />}>
             <div className="stack">
               <div className="range-label">
-                {formatDateRange(range.start, range.end)}
+                {formatDateRange(uninvoicedWorkRange.start, uninvoicedWorkRange.end)}
               </div>
               <div className="billing-summary">
                 <div className="billing-summary-item">

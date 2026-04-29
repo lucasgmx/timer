@@ -38,6 +38,11 @@ body {
   letter-spacing: 0;
 }
 
+img,
+svg {
+  max-width: 100%;
+}
+
 button,
 input,
 textarea,
@@ -81,6 +86,7 @@ a {
 .page-grid {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 
 .page-grid.two {
@@ -91,6 +97,7 @@ a {
 .stack {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .cluster {
@@ -129,6 +136,7 @@ a {
   font-weight: 700;
   line-height: 0.96;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .section-title {
@@ -140,6 +148,7 @@ a {
   text-transform: uppercase;
   color: var(--green);
   text-shadow: 0 0 18px rgba(140, 232, 173, 0.35);
+  overflow-wrap: anywhere;
 }
 
 .fine-print {
@@ -174,11 +183,11 @@ a {
 .login-logo {
   display: flex;
   justify-content: center;
-  width: min(100%, 350px);
+  width: min(350px, calc(100vw - 40px));
 }
 
 .login-card {
-  width: min(100%, 440px);
+  width: min(440px, calc(100vw - 32px));
 }
 
 .login-title {
@@ -313,8 +322,10 @@ a {
   color: var(--text);
   font-weight: 700;
   font-size: 1.45rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .running-task-name::before {
@@ -372,6 +383,7 @@ a {
 .invoice-preview {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 /* ─── Dashboard calendar ──────────────────────────────────── */
@@ -532,7 +544,9 @@ a {
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 /* ─── Billing summary ─────────────────────────────────────── */
@@ -592,6 +606,7 @@ a {
 .entry-list {
   display: grid;
   gap: 0;
+  min-width: 0;
 }
 
 .entry-row {
@@ -613,6 +628,7 @@ a {
   text-align: left;
   transition: background 0.12s;
   border-radius: 0;
+  min-width: 0;
 }
 
 .entry-row:last-child {
@@ -629,6 +645,7 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  max-width: 100%;
 }
 
 .entry-meta {
@@ -651,24 +668,32 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   z-index: 200;
+  overflow-y: auto;
 }
 
 .entry-detail-popup {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 28px 32px;
-  min-width: 320px;
-  max-width: 440px;
-  width: 100%;
+  padding: 24px;
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   display: grid;
-  gap: 16px;
+  gap: 18px;
+  box-shadow: var(--shadow);
+}
+
+.task-edit-popup {
+  width: min(440px, 100%);
 }
 
 .entry-detail-times {
   display: flex;
   gap: 32px;
+  flex-wrap: wrap;
 }
 
 .entry-detail-time-block {
@@ -683,18 +708,20 @@ a {
 }
 
 .entry-detail-cluster {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .entry-detail-cluster .field {
-  flex: 1 1 0;
+  min-width: 0;
 }
 
 .entry-detail-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .entry-detail-date {
@@ -706,6 +733,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
 }
@@ -716,6 +744,12 @@ a {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--green);
+}
+
+.entry-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .entry-detail-popup-close {
@@ -736,18 +770,38 @@ a {
 }
 
 .entry-detail-fields {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(120px, 0.8fr);
   gap: 12px;
 }
 
 .entry-detail-fields .field:first-child {
-  flex: 2 1 0;
   min-width: 0;
 }
 
 .entry-detail-fields .field:last-child {
-  flex: 1 1 0;
-  min-width: 100px;
+  min-width: 0;
+}
+
+.task-status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgba(140, 232, 173, 0.32);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--green);
+  background: rgba(140, 232, 173, 0.08);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.task-status-chip.archived {
+  border-color: rgba(240, 201, 106, 0.34);
+  color: var(--amber);
+  background: rgba(240, 201, 106, 0.08);
 }
 
 .entry-detail-close {
@@ -817,6 +871,7 @@ a {
 .time-hero-task {
   font-size: 1.2rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .time-hero-idle {
@@ -840,6 +895,11 @@ a {
   gap: 12px;
   border-bottom: 1px solid var(--border);
   padding: 10px 0;
+}
+
+.invoice-line > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .invoice-line-total {
@@ -901,7 +961,7 @@ a {
 
   .page,
   .page-grid.two {
-    width: min(100% - 32px, 760px);
+    width: min(calc(100vw - 32px), 760px);
     grid-template-columns: 1fr;
   }
 
@@ -911,12 +971,109 @@ a {
 }
 
 @media (max-width: 560px) {
+  .page,
+  .page-grid.two {
+    width: calc(100vw - 24px);
+    padding: 22px 0 42px;
+  }
+
+  .login-screen {
+    gap: 20px;
+    padding: 16px;
+  }
+
+  .login-logo {
+    width: min(260px, calc(100vw - 32px));
+  }
+
+  .login-title {
+    font-size: clamp(0.98rem, 4.6vw, 1.15rem);
+    line-height: 1.25;
+  }
+
+  .recaptcha-notice {
+    line-height: 1.45;
+  }
+
   .dashboard-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-summary {
     grid-template-columns: 1fr;
   }
 
   .split {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .timer-display {
+    font-size: clamp(2.1rem, 12vw, 3.2rem);
+    max-width: 100%;
+  }
+
+  .running-task-name {
+    font-size: 1.2rem;
+  }
+
+  .time-hero {
+    padding: 30px 16px;
+  }
+
+  .entry-detail-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .entry-detail-popup {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 22px 18px;
+  }
+
+  .entry-detail-fields,
+  .entry-detail-cluster {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .entry-detail-close,
+  .entry-detail-save {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .invoice-edit-row,
+  .invoice-line {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-edit-amount,
+  .invoice-line > span:last-child,
+  .invoice-line > strong:last-child {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-logo {
+    width: min(240px, calc(100vw - 32px));
+  }
+
+  .entry-row {
+    gap: 10px;
+  }
+
+  .invoice-edit-fields {
+    grid-template-columns: 1fr;
   }
 }

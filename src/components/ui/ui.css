@@ -4,6 +4,7 @@
 }
 
 .ui-card {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background:
@@ -29,12 +30,14 @@
   margin-bottom: 16px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .ui-card-header-main {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .ui-card-icon {
@@ -60,6 +63,10 @@
     border-color 160ms ease,
     background 160ms ease,
     transform 160ms ease;
+  max-width: 100%;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
 }
 
 .ui-button svg {
@@ -240,7 +247,10 @@
 }
 
 .ui-table-wrap {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ui-table {
@@ -273,4 +283,29 @@
 .ui-table th.numeric {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+@media (max-width: 560px) {
+  .ui-card {
+    padding: 14px;
+  }
+
+  .ui-card-header {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ui-button,
+  .ui-input {
+    min-height: 44px;
+  }
+
+  .ui-table {
+    min-width: 420px;
+  }
+
+  .ui-table th,
+  .ui-table td {
+    padding: 10px 8px;
+  }
 }

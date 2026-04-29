@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClock, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
-import { Receipt } from "lucide-react";
+import { Receipt, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
@@ -425,6 +425,43 @@ export default function DashboardPage() {
           return (
             <div className="entry-detail-overlay" onClick={() => setDetailEntry(null)}>
               <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
+                <div className="entry-detail-header">
+                  <span className="entry-detail-title">Edit entry</span>
+                  <button className="entry-detail-popup-close" onClick={() => setDetailEntry(null)} aria-label="Close">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="entry-detail-fields">
+                  <div className="field">
+                    <label htmlFor="detail-task">Task</label>
+                    <Input id="detail-task" value={detailTaskTitle} onChange={(e) => setDetailTaskTitle(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="detail-hours">Hours</label>
+                    <Input
+                      id="detail-hours"
+                      type="text"
+                      placeholder="0:00"
+                      value={detailHours}
+                      onChange={(e) => {
+                        setDetailHours(e.target.value);
+                        const parts = e.target.value.split(":");
+                        let hours = NaN;
+                        if (parts.length === 2) {
+                          hours = parseInt(parts[0] || "0", 10) + parseInt(parts[1] || "0", 10) / 60;
+                        } else {
+                          hours = parseFloat(e.target.value);
+                        }
+                        if (Number.isFinite(hours) && hours > 0) {
+                          const start = new Date(detailStartDatetime);
+                          const end = new Date(start.getTime() + hours * 3600 * 1000);
+                          setDetailEndDatetime(dateToDatetimeLocal(end));
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="entry-detail-divider" />
                 <div className="entry-detail-cluster">
                   <div className="field">
                     <label htmlFor="detail-start">Start</label>
@@ -446,38 +483,11 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <div className="entry-detail-divider" />
-                <div className="field">
-                  <label htmlFor="detail-task">Task</label>
-                  <Input id="detail-task" value={detailTaskTitle} onChange={(e) => setDetailTaskTitle(e.target.value)} />
-                </div>
-                <div className="field">
-                  <label htmlFor="detail-hours">Hours</label>
-                  <Input
-                    id="detail-hours"
-                    type="text"
-                    placeholder="0:00"
-                    value={detailHours}
-                    onChange={(e) => {
-                      setDetailHours(e.target.value);
-                      const parts = e.target.value.split(":");
-                      let hours = NaN;
-                      if (parts.length === 2) {
-                        hours = parseInt(parts[0] || "0", 10) + parseInt(parts[1] || "0", 10) / 60;
-                      } else {
-                        hours = parseFloat(e.target.value);
-                      }
-                      if (Number.isFinite(hours) && hours > 0) {
-                        const start = new Date(detailStartDatetime);
-                        const end = new Date(start.getTime() + hours * 3600 * 1000);
-                        setDetailEndDatetime(dateToDatetimeLocal(end));
-                      }
-                    }}
-                  />
-                </div>
                 {detailError ? <div className="error-state">{detailError}</div> : null}
                 <div className="entry-detail-actions">
-                  <button className="entry-detail-close" onClick={() => setDetailEntry(null)}>Cancel</button>
+                  <button className="entry-detail-close" onClick={() => setDetailEntry(null)}>
+                    <X size={14} /> Cancel
+                  </button>
                   <button className="entry-detail-save" disabled={detailBusy} onClick={() => void handleDetailSave()}>
                     {detailBusy ? "Saving…" : "Save"}
                   </button>

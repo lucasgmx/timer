@@ -194,12 +194,17 @@ export default function SettingsPage() {
 
         {editingTask ? (
           <div className="entry-detail-overlay" onClick={() => setEditingTask(null)}>
-            <div className="entry-detail-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="entry-detail-popup task-edit-popup" onClick={(e) => e.stopPropagation()}>
               <div className="entry-detail-header">
                 <span className="entry-detail-title">Edit task</span>
-                <button className="entry-detail-popup-close" onClick={() => setEditingTask(null)} aria-label="Close">
-                  <X size={16} />
-                </button>
+                <div className="entry-detail-header-actions">
+                  <span className={`task-status-chip ${editingTask.status === "archived" ? "archived" : ""}`}>
+                    {editingTask.status}
+                  </span>
+                  <button className="entry-detail-popup-close" onClick={() => setEditingTask(null)} aria-label="Close">
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
               <div className="entry-detail-fields">
                 <div className="field">

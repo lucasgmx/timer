@@ -82,6 +82,7 @@
   background: rgba(6, 10, 22, 0.5);
   padding: 18px 24px;
   backdrop-filter: blur(24px) saturate(300%);
+  min-width: 0;
 }
 
 .topbar-brand-block {
@@ -89,12 +90,14 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 5px;
+  min-width: 0;
 }
 
 .topbar-brand img {
   display: block;
   height: 29px;
   width: auto;
+  max-width: min(200px, 62vw);
 }
 
 .topbar-date {
@@ -112,6 +115,7 @@
 .topbar-clocks {
   display: flex;
   gap: 10px;
+  min-width: 0;
 }
 
 .topbar-clock {
@@ -127,6 +131,7 @@
     0 0 0 1px rgba(0,0,0,0.6),
     inset 0 1px 0 rgba(255,255,255,0.03),
     0 0 18px rgba(255, 140, 0, 0.07);
+  min-width: 0;
 }
 
 .topbar-clock-label {
@@ -135,6 +140,8 @@
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+  line-height: 1.15;
+  text-align: center;
 }
 
 .topbar-clock-display {
@@ -315,6 +322,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .passkey-type {
@@ -391,5 +399,53 @@
     position: relative;
     align-items: flex-start;
     flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .topbar-clocks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .topbar-clock {
+    padding: 6px 8px 8px;
+  }
+
+  .topbar-clock-ghost,
+  .topbar-clock-time {
+    font-size: clamp(1.1rem, 5.8vw, 1.45rem);
+  }
+
+  .topbar > .cluster {
+    width: 100%;
+  }
+
+  .topbar > .cluster .ui-button {
+    flex: 1 1 auto;
+  }
+
+  .account-modal {
+    width: min(420px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+  }
+
+  .passkey-row {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar {
+    padding: 12px;
+  }
+
+  .topbar-clocks {
+    gap: 8px;
+  }
+
+  .topbar-clock-label {
+    font-size: 0.58rem;
   }
 }

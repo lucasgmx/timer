@@ -20,6 +20,21 @@
   box-shadow: 0 0 0 1px rgba(220, 60, 60, 0.18), var(--shadow);
 }
 
+.ui-card.timer-idle {
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-card.timer-idle > .stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-card.timer-idle .invoice-now-btn {
+  margin-top: auto;
+}
+
 /* blinking dot removed from card corner — now inline in .running-task-name */
 
 .ui-card-header {

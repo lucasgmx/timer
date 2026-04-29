@@ -1300,6 +1300,12 @@ a {
   }
 }
 
+@media (max-width: 480px) {
+  .invoice-range-col {
+    display: none;
+  }
+}
+
 @media (max-width: 420px) {
   .login-logo {
     width: min(240px, calc(100vw - 32px));

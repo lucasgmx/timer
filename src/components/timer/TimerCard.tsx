@@ -125,7 +125,7 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
     : null;
 
   return (
-    <Card title={effectiveRunningEntry ? "Timer running" : "Start tracking"} icon={<FontAwesomeIcon icon={faStopwatch} />} className={effectiveRunningEntry ? "timer-running" : ""}>
+    <Card title={effectiveRunningEntry ? "Timer running" : "Start tracking"} icon={<FontAwesomeIcon icon={faStopwatch} />} className={effectiveRunningEntry ? "timer-running" : "timer-idle"}>
       <div className="stack">
         {effectiveRunningEntry ? (
           <>
@@ -155,14 +155,14 @@ export function TimerCard({ tasks, runningEntry, onChanged }: TimerCardProps) {
                 autoComplete="off"
               />
             </div>
-            <Button
-              variant="primary"
-              icon={<Play />}
+            <button
+              className="invoice-now-btn"
               disabled={busy || !taskInput.trim()}
               onClick={() => void handleStart()}
             >
+              <Play size={20} />
               Start timer
-            </Button>
+            </button>
           </>
         )}
         {error ? <div className="error-state">{error}</div> : null}

@@ -2,7 +2,7 @@
 
 import confetti from "canvas-confetti";
 import { doc, getDoc } from "firebase/firestore";
-import { CheckCircle2, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { InvoiceEditForm } from "@/components/invoices/InvoiceEditForm";
@@ -25,7 +25,7 @@ export default function InvoiceDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(() => searchParams.get("edit") === "true");
-  const statusBadgeRef = useRef<HTMLHeadingElement>(null);
+  const statusBadgeRef = useRef<HTMLElement>(null);
 
   const loadInvoice = useCallback(async () => {
     setLoading(true);
@@ -151,7 +151,7 @@ export default function InvoiceDetailPage() {
         <div className="split">
           <div>
             <div className="eyebrow">invoice</div>
-            <h1 className="page-title" ref={statusBadgeRef}>{invoice?.invoiceNumber ?? "Invoice"}</h1>
+            <h1 className="page-title">{invoice?.invoiceNumber ?? "Invoice"}</h1>
           </div>
           {profile?.role === "admin" && invoice && !editMode ? (
             <div className="cluster">
@@ -162,25 +162,6 @@ export default function InvoiceDetailPage() {
                   disabled={busy}
                 >
                   Edit
-                </Button>
-              ) : null}
-              {invoice.status === "unpaid" ? (
-                <Button
-                  variant="primary"
-                  icon={<CheckCircle2 />}
-                  disabled={busy}
-                  onClick={() => updateStatus("/api/invoices/mark-paid")}
-                >
-                  Mark paid
-                </Button>
-              ) : null}
-              {invoice.status === "paid" ? (
-                <Button
-                  icon={<RotateCcw />}
-                  disabled={busy}
-                  onClick={() => updateStatus("/api/invoices/mark-unpaid")}
-                >
-                  Mark unpaid
                 </Button>
               ) : null}
               {invoice.status !== "paid" ? (
@@ -211,7 +192,16 @@ export default function InvoiceDetailPage() {
             }}
           />
         ) : invoice ? (
-          <InvoicePreview invoice={invoice} />
+          <InvoicePreview
+            invoice={invoice}
+            statusBadgeRef={statusBadgeRef}
+            onStatusClick={
+              profile?.role === "admin" && !editMode && (invoice.status === "unpaid" || invoice.status === "paid")
+                ? () => void updateStatus(invoice.status === "unpaid" ? "/api/invoices/mark-paid" : "/api/invoices/mark-unpaid")
+                : undefined
+            }
+            statusBusy={busy}
+          />
         ) : null}
         {!loading && !invoice && !error ? (
           <Card>

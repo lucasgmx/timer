@@ -64,22 +64,22 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
   }
 
   return (
-    <Table>
+    <Table style={{ width: "auto", minWidth: 0 }}>
       <thead>
         <tr>
-          <th>Invoice</th>
-          <th>Range</th>
-          <th className="numeric">Total</th>
+          <th style={{ width: "1%", whiteSpace: "nowrap" }}>Invoice</th>
+          <th className="invoice-range-col" style={{ width: "1%", whiteSpace: "nowrap" }}>Range</th>
+          <th className="numeric" style={{ width: "1%", whiteSpace: "nowrap" }}>Total</th>
           <th style={{ width: "1%", whiteSpace: "nowrap" }}>Status</th>
         </tr>
       </thead>
       <tbody>
         {invoices.map((invoice) => (
             <tr key={invoice.id}>
-              <td>
+              <td style={{ whiteSpace: "nowrap" }}>
                 <Link href={`/invoices/${invoice.id}`}>{invoice.invoiceNumber}</Link>
               </td>
-              <td className="mono-number">
+              <td className="mono-number invoice-range-col" style={{ whiteSpace: "nowrap" }}>
                 {formatDateKey(invoice.dateRange.start)} &rarr; {formatDateKey(invoice.dateRange.end)}
               </td>
               <td className="numeric mono-number">{formatCents(invoice.totalCents)}</td>

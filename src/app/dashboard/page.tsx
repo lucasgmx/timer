@@ -508,7 +508,24 @@ export default function DashboardPage() {
                 <div className="entry-detail-fields">
                   <div className="field">
                     <label htmlFor="detail-task">Task</label>
-                    <Input id="detail-task" value={detailTaskTitle} onChange={(e) => setDetailTaskTitle(e.target.value)} />
+                    <select
+                      id="detail-task"
+                      className="ui-input"
+                      value={detailTaskTitle}
+                      onChange={(e) => setDetailTaskTitle(e.target.value)}
+                    >
+                      {tasks
+                        .slice()
+                        .sort((a, b) => {
+                          if (a.status === b.status) return a.title.localeCompare(b.title);
+                          return a.status === "active" ? -1 : 1;
+                        })
+                        .map((t) => (
+                          <option key={t.id} value={t.title}>
+                            {t.title}{t.status === "archived" ? " (archived)" : ""}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                   <div className="field">
                     <label htmlFor="detail-hours">Hours</label>

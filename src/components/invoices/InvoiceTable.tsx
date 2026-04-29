@@ -23,7 +23,7 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
     return <div className="empty-state">No invoices yet.</div>;
   }
 
-  async function toggleStatus(invoice: Invoice) {
+  async function toggleStatus(invoice: Invoice, triggerEl: HTMLElement) {
     if (busy || invoice.status === "void") return;
     const nextStatus: InvoiceStatus = invoice.status === "unpaid" ? "paid" : "unpaid";
     const label = nextStatus === "paid" ? "paid" : "unpaid";
@@ -42,10 +42,14 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
       });
       if (!response.ok) return;
       if (nextStatus === "paid") {
+        const rect = triggerEl.getBoundingClientRect();
         void confetti({
           particleCount: 120,
           spread: 80,
-          origin: { y: 0.6 },
+          origin: {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight,
+          },
           colors: ["#52ff8a", "#fffb6e", "#6ec7ff", "#ff6ec7", "#ffb347"],
         });
       }
@@ -84,7 +88,7 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
                 {invoice.status !== "void" ? (
                   <button
                     type="button"
-                    onClick={() => void toggleStatus(invoice)}
+                    onClick={(e) => void toggleStatus(invoice, e.currentTarget)}
                     disabled={busy === invoice.id}
                     style={{ background: "none", border: "none", padding: 0, cursor: busy === invoice.id ? "wait" : "pointer" }}
                   >

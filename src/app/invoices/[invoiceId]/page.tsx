@@ -1,9 +1,10 @@
 "use client";
 
+import confetti from "canvas-confetti";
 import { doc, getDoc } from "firebase/firestore";
 import { Ban, CheckCircle2, Pencil, RotateCcw } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { InvoiceEditForm } from "@/components/invoices/InvoiceEditForm";
 import { InvoicePreview } from "@/components/invoices/InvoicePreview";
 import { InvoiceStatusBadge } from "@/components/invoices/InvoiceStatusBadge";
@@ -25,6 +26,7 @@ export default function InvoiceDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(() => searchParams.get("edit") === "true");
+  const statusBadgeRef = useRef<HTMLDivElement>(null);
 
   const loadInvoice = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,19 @@ export default function InvoiceDetailPage() {
         throw new Error(await response.text());
       }
 
+      if (path === "/api/invoices/mark-paid" && statusBadgeRef.current) {
+        const rect = statusBadgeRef.current.getBoundingClientRect();
+        void confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight,
+          },
+          colors: ["#52ff8a", "#fffb6e", "#6ec7ff", "#ff6ec7", "#ffb347"],
+        });
+      }
+
       await loadInvoice();
     } catch (statusError) {
       setError(statusError instanceof Error ? statusError.message : "Unable to update invoice.");
@@ -105,7 +120,7 @@ export default function InvoiceDetailPage() {
           <div>
             <div className="eyebrow">invoice</div>
             <h1 className="page-title">{invoice?.invoiceNumber ?? "Invoice"}</h1>
-            {invoice ? <div style={{ marginTop: "6px" }}><InvoiceStatusBadge status={invoice.status} /></div> : null}
+            {invoice ? <div ref={statusBadgeRef} style={{ marginTop: "6px" }}><InvoiceStatusBadge status={invoice.status} /></div> : null}
           </div>
           {profile?.role === "admin" && invoice && !editMode ? (
             <div className="cluster">

@@ -49,10 +49,10 @@ export function Header() {
           <div key={tz} className="topbar-clock">
             <span className="topbar-clock-label">{label}</span>
             <div className="topbar-clock-display">
-              <span className="topbar-clock-ghost" aria-hidden="true">88:88 AM</span>
+              <span className="topbar-clock-ghost" aria-hidden="true">8:88 AM&#x2007;</span>
               <span className="topbar-clock-time">
                 {new Intl.DateTimeFormat("en-US", {
-                  hour: "2-digit",
+                  hour: "numeric",
                   minute: "2-digit",
                   hour12: true,
                   timeZone: tz,

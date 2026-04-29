@@ -73,7 +73,7 @@ a {
 }
 
 .page {
-  width: min(1280px, calc(100vw - 48px));
+  width: min(1000px, calc(100vw - 48px));
   margin: 0 auto;
   padding: 28px 0 56px;
 }
@@ -320,12 +320,11 @@ a {
 .running-task-name::before {
   content: '';
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #f87171;
   flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(248, 113, 113, 0.8);
   animation: blink-dot 1.2s ease-in-out infinite;
 }
 
@@ -661,7 +660,7 @@ a {
   border-radius: var(--radius);
   padding: 28px 32px;
   min-width: 320px;
-  max-width: 540px;
+  max-width: 440px;
   width: 100%;
   display: grid;
   gap: 16px;

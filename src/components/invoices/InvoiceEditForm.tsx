@@ -4,7 +4,15 @@ import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { Save, X } from "lucide-react";
-import { calculateAmountCents, calculateTotalAmountCents, formatCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
+import { distributeInvoiceTotalCents } from "@/lib/billing/calculateInvoice";
+import {
+  calculateAmountCents,
+  calculateTotalAmountCents,
+  formatCents,
+  formatDollarsInput,
+  parseDollarsToCents,
+  secondsToDecimalHours
+} from "@/lib/billing/formatDuration";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -13,6 +21,7 @@ import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 
 type EditableLineItem = {
   timeEntryId: string;
+  taskId: string;
   taskTitle: string;
   hoursInput: string;
   // read-only snapshot fields
@@ -24,6 +33,7 @@ type EditableLineItem = {
 function toEditable(item: InvoiceLineItem): EditableLineItem {
   return {
     timeEntryId: item.timeEntryId,
+    taskId: item.taskId,
     taskTitle: item.taskTitle,
     hoursInput: secondsToDecimalHours(item.durationSeconds).toFixed(2),
     hourlyRateCents: item.hourlyRateCents,
@@ -38,12 +48,16 @@ export function InvoiceEditForm({
   onCancel
 }: {
   invoice: Invoice;
-  onSave: (lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[]) => Promise<void>;
+  onSave: (
+    lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[],
+    totalCents: number
+  ) => Promise<void>;
   onCancel: () => void;
 }) {
   const [items, setItems] = useState<EditableLineItem[]>(() =>
     invoice.lineItems.map(toEditable)
   );
+  const [totalInput, setTotalInput] = useState(() => formatDollarsInput(invoice.totalCents));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,14 +71,35 @@ export function InvoiceEditForm({
     return calculateAmountCents(Math.round(hours * 3600), item.hourlyRateCents);
   }
 
-  const previewTotal = calculateTotalAmountCents(
-    items
-      .map((item) => {
-        const hours = parseFloat(item.hoursInput);
-        if (!Number.isFinite(hours) || hours <= 0) return null;
-        return { durationSeconds: Math.round(hours * 3600), hourlyRateCents: item.hourlyRateCents };
-      })
-      .filter((item): item is { durationSeconds: number; hourlyRateCents: number } => item !== null)
+  const previewLineItems = items.map((item) => {
+    const hours = parseFloat(item.hoursInput);
+    if (!Number.isFinite(hours) || hours <= 0) return null;
+
+    const durationSeconds = Math.round(hours * 3600);
+    return {
+      timeEntryId: item.timeEntryId,
+      taskId: item.taskId,
+      taskTitle: item.taskTitle,
+      userId: item.userId,
+      dateKey: item.dateKey,
+      durationSeconds,
+      hoursDecimal: secondsToDecimalHours(durationSeconds),
+      hourlyRateCents: item.hourlyRateCents,
+      amountCents: calculateAmountCents(durationSeconds, item.hourlyRateCents)
+    };
+  });
+  const validPreviewLineItems = previewLineItems.filter(
+    (item): item is InvoiceLineItem => item !== null
+  );
+  const calculatedTotal = calculateTotalAmountCents(validPreviewLineItems);
+  const parsedTotalCents = parseDollarsToCents(totalInput);
+  const previewTotal = parsedTotalCents ?? calculatedTotal;
+  const distributedPreviewLineItems =
+    parsedTotalCents === null
+      ? validPreviewLineItems
+      : distributeInvoiceTotalCents(validPreviewLineItems, parsedTotalCents);
+  const previewAmountByEntryId = new Map(
+    distributedPreviewLineItems.map((item) => [item.timeEntryId, item.amountCents])
   );
 
   async function handleSave() {
@@ -82,6 +117,12 @@ export function InvoiceEditForm({
       }
     }
 
+    const totalCents = parseDollarsToCents(totalInput);
+    if (totalCents === null) {
+      setError("Enter a valid invoice total.");
+      return;
+    }
+
     setBusy(true);
     try {
       await onSave(
@@ -89,7 +130,8 @@ export function InvoiceEditForm({
           timeEntryId: item.timeEntryId,
           taskTitle: item.taskTitle.trim(),
           durationSeconds: Math.round(parseFloat(item.hoursInput) * 3600)
-        }))
+        })),
+        totalCents
       );
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save changes.");
@@ -114,6 +156,7 @@ export function InvoiceEditForm({
         <div className="invoice-lines invoice-edit-lines">
           {items.map((item, index) => {
             const amt = computedAmount(item);
+            const previewAmount = previewAmountByEntryId.get(item.timeEntryId) ?? amt;
             return (
               <div key={item.timeEntryId} className="invoice-edit-row">
                 <div className="invoice-edit-fields">
@@ -145,16 +188,32 @@ export function InvoiceEditForm({
                   </div>
                 </div>
                 <div className="invoice-edit-amount numeric mono-number">
-                  {amt !== null ? formatCents(amt) : <span className="error-state">—</span>}
+                  {previewAmount !== null ? formatCents(previewAmount) : <span className="error-state">—</span>}
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div className="split">
-          <span className="muted">Total</span>
-          <strong className="mono-number">{formatCents(previewTotal)}</strong>
+        <div className="invoice-review-total-edit">
+          <label className="fine-print" htmlFor="invoice-edit-total">
+            Invoice total
+          </label>
+          <div className="invoice-dollar-field">
+            <span className="invoice-dollar-prefix">$</span>
+            <Input
+              id="invoice-edit-total"
+              inputMode="decimal"
+              value={totalInput}
+              onChange={(e) => setTotalInput(e.target.value)}
+              disabled={busy}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="split">
+            <span className="muted">Total</span>
+            <strong className="mono-number">{formatCents(previewTotal)}</strong>
+          </div>
         </div>
 
         {error ? <div className="error-state">{error}</div> : null}

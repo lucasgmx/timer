@@ -33,3 +33,18 @@ export function formatCents(cents: number, currency = "USD") {
     minimumFractionDigits: 2
   }).format(cents / 100);
 }
+
+export function formatDollarsInput(cents: number) {
+  return (Math.max(0, cents) / 100).toFixed(2);
+}
+
+export function parseDollarsToCents(value: string) {
+  const normalized = value.replace(/[$,\s]/g, "");
+  const match = normalized.match(/^(?:(\d+)(?:\.(\d{0,2}))?|\.(\d{1,2}))$/);
+
+  if (!match) return null;
+
+  const dollars = match[1] ?? "0";
+  const cents = match[2] ?? match[3] ?? "";
+  return Number(dollars) * 100 + Number(cents.padEnd(2, "0"));
+}

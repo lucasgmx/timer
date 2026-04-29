@@ -62,6 +62,7 @@ export const invoiceStatusSchema = z.object({
 
 export const updateInvoiceLineItemsSchema = z.object({
   invoiceId: nonEmptyIdSchema,
+  totalCents: z.number().int().nonnegative().max(100_000_000).optional(),
   lineItems: z
     .array(
       z.object({

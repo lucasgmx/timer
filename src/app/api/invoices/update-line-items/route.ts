@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { distributeInvoiceTotalCents } from "@/lib/billing/calculateInvoice";
 import { calculateAmountCents, calculateTotalAmountCents, secondsToDecimalHours } from "@/lib/billing/formatDuration";
 import { adminDb } from "@/lib/firebase/admin";
 import { jsonError, requireRole } from "@/lib/firebase/auth";
@@ -70,11 +71,15 @@ export async function POST(request: Request) {
         };
       });
 
-      const subtotalCents = calculateTotalAmountCents(updatedLineItems);
-      const totalCents = subtotalCents;
+      const calculatedSubtotalCents = calculateTotalAmountCents(updatedLineItems);
+      const totalCents = body.totalCents ?? calculatedSubtotalCents;
+      const finalLineItems =
+        body.totalCents === undefined
+          ? updatedLineItems
+          : distributeInvoiceTotalCents(updatedLineItems, body.totalCents);
 
       // Calendar summary deltas for changed amounts and durations
-      const summaryDeltas = updatedLineItems.map((updated) => {
+      const summaryDeltas = finalLineItems.map((updated) => {
         const old = existingByEntryId.get(updated.timeEntryId)!;
         return {
           dateKey: updated.dateKey,
@@ -90,14 +95,14 @@ export async function POST(request: Request) {
 
       // Update invoice document
       transaction.update(invoiceRef, {
-        lineItems: updatedLineItems,
-        subtotalCents,
+        lineItems: finalLineItems,
+        subtotalCents: totalCents,
         totalCents,
         updatedAt: FieldValue.serverTimestamp()
       });
 
       // Update each time entry's duration and amount snapshot
-      for (const updated of updatedLineItems) {
+      for (const updated of finalLineItems) {
         const old = existingByEntryId.get(updated.timeEntryId)!;
         if (
           updated.durationSeconds !== old.durationSeconds ||
@@ -122,7 +127,8 @@ export async function POST(request: Request) {
         COLLECTIONS.invoices,
         body.invoiceId,
         {
-          lineItemCount: updatedLineItems.length,
+          lineItemCount: finalLineItems.length,
+          calculatedSubtotalCents,
           totalCents
         }
       );

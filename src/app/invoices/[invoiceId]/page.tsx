@@ -123,7 +123,8 @@ export default function InvoiceDetailPage() {
   }
 
   async function handleSaveLineItems(
-    lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[]
+    lineItems: { timeEntryId: string; taskTitle: string; durationSeconds: number }[],
+    totalCents: number
   ) {
     const token = await getToken();
     const response = await fetch("/api/invoices/update-line-items", {
@@ -132,7 +133,7 @@ export default function InvoiceDetailPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ invoiceId: params.invoiceId, lineItems })
+      body: JSON.stringify({ invoiceId: params.invoiceId, lineItems, totalCents })
     });
 
     if (!response.ok) {

@@ -1,10 +1,11 @@
 import "server-only";
 
 export function getPasskeyConfig() {
+  const isDev = process.env.NODE_ENV === "development";
   const rpID =
     process.env.PASSKEY_RP_ID ??
     process.env.NEXT_PUBLIC_PASSKEY_RP_ID ??
-    "localhost";
+    (isDev ? "localhost" : "timer.marques.llc");
 
   const origin =
     process.env.PASSKEY_ORIGIN ??

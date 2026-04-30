@@ -86,13 +86,10 @@ export function InvoicePreview({
               <span className="mono-number">{lineItem.hoursDecimal.toFixed(2)} hrs</span>
             </div>
           ))}
-          <div className="invoice-line invoice-line-hours-total">
-            <span />
-            <span className="mono-number">{totalHours.toFixed(2)} hrs total</span>
-          </div>
           <div className="invoice-line invoice-line-total">
             <span>TOTAL</span>
-            <strong className="mono-number">{formatCents(invoice.totalCents)}</strong>
+            <span className="mono-number">{totalHours.toFixed(2)} hrs total</span>
+            <strong className="mono-number amount-gradient">{formatCents(invoice.totalCents)}</strong>
           </div>
         </div>
       </div>

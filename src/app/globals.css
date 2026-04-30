@@ -1034,22 +1034,19 @@ a {
   overflow-wrap: anywhere;
 }
 
-.invoice-line-hours-total {
-  border-bottom: none;
-  color: var(--text-muted);
-  font-size: 0.85em;
-  padding-top: 4px;
-}
-
-.invoice-line-hours-total > span:first-child {
-  visibility: hidden;
-}
-
 .invoice-line-total {
   border-bottom: none;
   border-top: 1px solid var(--border-strong);
+  grid-template-columns: minmax(0, 1fr) auto auto;
   padding-top: 12px;
   font-weight: 600;
+}
+
+.amount-gradient {
+  background: linear-gradient(90deg, #8ce8ad 0%, #7bdff2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ─── Invoice edit form ───────────────────────────────────── */

@@ -63,6 +63,8 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
     }
   }
 
+  const grandTotalCents = invoices.reduce((sum, inv) => sum + inv.totalCents, 0);
+
   return (
     <Table style={{ width: "auto", minWidth: 0 }}>
       <thead>
@@ -100,6 +102,13 @@ export function InvoiceTable({ invoices: initial }: { invoices: Invoice[] }) {
             </tr>
           ))}
       </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={4} className="numeric mono-number" style={{ fontWeight: 600, paddingTop: "12px", borderTop: "1px solid var(--border-strong)" }}>
+            <span className="amount-gradient">{formatCents(grandTotalCents)}</span>
+          </td>
+        </tr>
+      </tfoot>
     </Table>
   );
 }

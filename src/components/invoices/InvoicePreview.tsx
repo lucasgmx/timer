@@ -68,7 +68,7 @@ export function InvoicePreview({
   );
 
   return (
-    <Card eyebrow="invoice detail" subtitle={formatDateRange(invoice.dateRange.start, invoice.dateRange.end)} icon={<FontAwesomeIcon icon={faFileInvoice} />} action={statusBadge}>
+    <Card subtitle={formatDateRange(invoice.dateRange.start, invoice.dateRange.end)} icon={<FontAwesomeIcon icon={faFileInvoice} />} action={statusBadge}>
       <div className="invoice-preview">
         <div>
           {invoice.dueDate ? (

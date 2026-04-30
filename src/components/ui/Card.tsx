@@ -21,7 +21,7 @@ export function Card({
 }: CardProps) {
   return (
     <section className={`ui-card ${className}`} {...props}>
-      {(title || eyebrow || action || icon) && (
+      {(title || eyebrow || subtitle || action || icon) && (
         <div className="ui-card-header">
           <div className="ui-card-header-main">
             {icon ? <span className="ui-card-icon">{icon}</span> : null}

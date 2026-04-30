@@ -1034,6 +1034,17 @@ a {
   overflow-wrap: anywhere;
 }
 
+.invoice-line-hours-total {
+  border-bottom: none;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  padding-top: 4px;
+}
+
+.invoice-line-hours-total > span:first-child {
+  visibility: hidden;
+}
+
 .invoice-line-total {
   border-bottom: none;
   border-top: 1px solid var(--border-strong);

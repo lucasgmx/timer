@@ -22,6 +22,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
 import {
   calculateAmountCents,
   formatCents,
@@ -59,6 +60,11 @@ function formatDateRange(start: string, end: string) {
   const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
   const dayLabel = days === 1 ? "1 day" : `${days} days`;
   return `${startFmt} → ${endFmt} (${dayLabel})`;
+}
+
+function formatDateKey(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatShortDuration(totalSeconds: number) {
@@ -465,22 +471,30 @@ export default function DashboardPage() {
         <Card title="Time entries" icon={<FontAwesomeIcon icon={faClock} />}>
           {loading ? (
             <div className="loading-state">Loading entries…</div>
+          ) : entries.length === 0 ? (
+            <div className="empty-state">No entries for this range.</div>
           ) : (
-            <div className="entry-list">
-              {entries.map((entry) => {
-                const task = tasks.find((t) => t.id === entry.taskId);
-                return (
-                  <button key={entry.id} className="entry-row" onClick={() => openDetail(entry)}>
-                    <span className="entry-task-btn">
-                      {task?.title ?? "Task"}
-                    </span>
-                    <div className="entry-meta">
-                      <strong className="entry-duration mono-number">{formatShortDuration(entry.durationSeconds)}</strong>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <Table style={{ width: "auto", minWidth: 0 }}>
+              <thead>
+                <tr>
+                  <th>Task</th>
+                  <th style={{ width: "1%", whiteSpace: "nowrap" }}>Date</th>
+                  <th className="numeric" style={{ width: "1%", whiteSpace: "nowrap" }}>Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry) => {
+                  const task = tasks.find((t) => t.id === entry.taskId);
+                  return (
+                    <tr key={entry.id} style={{ cursor: "pointer" }} onClick={() => openDetail(entry)}>
+                      <td>{task?.title ?? "Task"}</td>
+                      <td className="mono-number" style={{ whiteSpace: "nowrap" }}>{formatDateKey(entry.dateKey)}</td>
+                      <td className="numeric mono-number">{formatShortDuration(entry.durationSeconds)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
           )}
         </Card>
 

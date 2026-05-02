@@ -33,6 +33,15 @@ export async function POST(request: Request) {
     const actor = await requireRole(request, ["admin"]);
     const body = generateInvoiceSchema.parse(await request.json());
     const db = adminDb();
+    const durationOverrides = new Map<string, number>();
+
+    for (const override of body.durationOverrides ?? []) {
+      if (durationOverrides.has(override.timeEntryId)) {
+        throw new Response("Duplicate duration override submitted.", { status: 400 });
+      }
+
+      durationOverrides.set(override.timeEntryId, override.durationSeconds);
+    }
 
     const result = await db.runTransaction(async (transaction) => {
       const entriesQuery = db
@@ -70,6 +79,16 @@ export async function POST(request: Request) {
         throw new Response("Selected entries must be completed and uninvoiced.", {
           status: 409
         });
+      }
+
+      const billableEntryById = new Map(billableEntries.map((entry) => [entry.id, entry]));
+
+      for (const timeEntryId of durationOverrides.keys()) {
+        if (!billableEntryById.has(timeEntryId)) {
+          throw new Response("Duration overrides must match selected billable entries.", {
+            status: 400
+          });
+        }
       }
 
       const taskIds = Array.from(new Set(billableEntries.map((entry) => entry.taskId)));
@@ -115,7 +134,8 @@ export async function POST(request: Request) {
           taskId: String(entry.taskId),
           description: entry.description ? String(entry.description) : undefined,
           dateKey: String(entry.dateKey),
-          durationSeconds: Number(entry.durationSeconds),
+          durationSeconds:
+            durationOverrides.get(entry.id) ?? Number(entry.durationSeconds),
           hourlyRateCentsSnapshot: Number(entry.hourlyRateCentsSnapshot ?? 0)
         })),
         tasks
@@ -135,7 +155,12 @@ export async function POST(request: Request) {
           dateKey: lineItem.dateKey,
           userId: lineItem.userId,
           delta: {
-            uninvoicedAmountCents: -lineItem.amountCents,
+            totalDurationSeconds:
+              lineItem.durationSeconds -
+              Number(billableEntryById.get(lineItem.timeEntryId)?.durationSeconds ?? 0),
+            uninvoicedAmountCents: -Number(
+              billableEntryById.get(lineItem.timeEntryId)?.amountCentsSnapshot ?? 0
+            ),
             invoicedUnpaidAmountCents: lineItem.amountCents
           }
         }))
@@ -162,6 +187,7 @@ export async function POST(request: Request) {
           status: "invoiced",
           invoiceId: invoiceRef.id,
           invoiceStatusSnapshot: "unpaid",
+          durationSeconds: lineItem.durationSeconds,
           amountCentsSnapshot: lineItem.amountCents,
           hourlyRateCentsSnapshot: lineItem.hourlyRateCents,
           updatedAt: FieldValue.serverTimestamp()
@@ -188,6 +214,7 @@ export async function POST(request: Request) {
         {
           invoiceNumber,
           lineItemCount: lineItems.length,
+          durationOverrideCount: durationOverrides.size,
           calculatedTotalCents: invoiceSnapshot.totalCents,
           totalCents,
           dateRange: body.dateRange

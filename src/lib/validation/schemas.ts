@@ -53,7 +53,16 @@ export const generateInvoiceSchema = z.object({
   dateRange: dateRangeSchema,
   dueDate: dateKeySchema.optional().nullable(),
   totalCents: z.number().int().nonnegative().max(100_000_000).optional(),
-  timeEntryIds: z.array(nonEmptyIdSchema).min(1).max(200).optional()
+  timeEntryIds: z.array(nonEmptyIdSchema).min(1).max(200).optional(),
+  durationOverrides: z
+    .array(
+      z.object({
+        timeEntryId: nonEmptyIdSchema,
+        durationSeconds: z.number().int().positive().max(60 * 60 * 24 * 7)
+      })
+    )
+    .max(200)
+    .optional()
 });
 
 export const invoiceStatusSchema = z.object({

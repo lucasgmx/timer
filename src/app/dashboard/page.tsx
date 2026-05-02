@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClock, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
-import { Check, Receipt, X } from "lucide-react";
+import { ArrowUp, Check, Receipt, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "@/components/calendar/DateRangePicker";
@@ -28,8 +28,7 @@ import {
   formatCents,
   formatDollarsInput,
   formatDuration,
-  parseDollarsToCents,
-  secondsToDecimalHours
+  parseDollarsToCents
 } from "@/lib/billing/formatDuration";
 import { getUserTimeZone, todayDateKey } from "@/lib/dates/dateKeys";
 import { db } from "@/lib/firebase/client";
@@ -72,6 +71,10 @@ function formatShortDuration(totalSeconds: number) {
   const hours = Math.floor(safe / 3600);
   const minutes = Math.floor((safe % 3600) / 60);
   return `${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+function roundSecondsUpToHour(totalSeconds: number) {
+  return Math.ceil(totalSeconds / 3600) * 3600;
 }
 
 function sortTasksLatestFirst(tasks: Task[]) {
@@ -125,6 +128,9 @@ export default function DashboardPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
   const [invoiceTotalInput, setInvoiceTotalInput] = useState("");
+  const [invoiceDurationOverrides, setInvoiceDurationOverrides] = useState<Record<string, number>>({});
+  const [invoiceTotalManuallyEdited, setInvoiceTotalManuallyEdited] = useState(false);
+  const [invoiceMagicBursts, setInvoiceMagicBursts] = useState<Record<string, number>>({});
 
   const tasksById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
 
@@ -275,6 +281,20 @@ export default function DashboardPage() {
     return { start, end: today };
   }, [entries, today]);
 
+  const invoiceEffectiveSeconds = useMemo(
+    () =>
+      entries.reduce(
+        (sum, entry) => sum + (invoiceDurationOverrides[entry.id] ?? entry.durationSeconds),
+        0
+      ),
+    [entries, invoiceDurationOverrides]
+  );
+
+  const invoiceCalculatedTotalCents = useMemo(
+    () => calculateAmountCents(invoiceEffectiveSeconds, profile?.defaultHourlyRateCents ?? 0),
+    [invoiceEffectiveSeconds, profile?.defaultHourlyRateCents]
+  );
+
   const invoiceTaskRows = useMemo(() => {
     const rows = new Map<
       string,
@@ -282,6 +302,7 @@ export default function DashboardPage() {
         key: string;
         taskTitle: string;
         durationSeconds: number;
+        roundedDurationSeconds: number;
       }
     >();
 
@@ -289,20 +310,28 @@ export default function DashboardPage() {
       const task = tasksById.get(entry.taskId);
       const key = entry.taskId || entry.id;
       const existing = rows.get(key);
+      const durationSeconds = invoiceDurationOverrides[entry.id] ?? entry.durationSeconds;
 
       if (existing) {
-        existing.durationSeconds += entry.durationSeconds;
+        existing.durationSeconds += durationSeconds;
+        existing.roundedDurationSeconds = roundSecondsUpToHour(existing.durationSeconds);
       } else {
         rows.set(key, {
           key,
           taskTitle: task?.title ?? "Task",
-          durationSeconds: entry.durationSeconds
+          durationSeconds,
+          roundedDurationSeconds: roundSecondsUpToHour(durationSeconds)
         });
       }
     }
 
     return Array.from(rows.values()).sort((a, b) => a.taskTitle.localeCompare(b.taskTitle));
-  }, [entries, tasksById]);
+  }, [entries, invoiceDurationOverrides, tasksById]);
+
+  useEffect(() => {
+    if (!invoiceReviewOpen || invoiceTotalManuallyEdited) return;
+    setInvoiceTotalInput(formatDollarsInput(invoiceCalculatedTotalCents));
+  }, [invoiceCalculatedTotalCents, invoiceReviewOpen, invoiceTotalManuallyEdited]);
 
   function dateToDatetimeLocal(date: Date): string {
     const y = date.getFullYear();
@@ -376,6 +405,9 @@ export default function DashboardPage() {
   function openInvoiceReview() {
     if (!profile || entries.length === 0) return;
     setInvoiceError(null);
+    setInvoiceDurationOverrides({});
+    setInvoiceTotalManuallyEdited(false);
+    setInvoiceMagicBursts({});
     setInvoiceTotalInput(formatDollarsInput(totals.cents));
     setInvoiceReviewOpen(true);
   }
@@ -383,6 +415,29 @@ export default function DashboardPage() {
   function closeInvoiceReview() {
     if (invoicing) return;
     setInvoiceReviewOpen(false);
+  }
+
+  function roundInvoiceTaskToNextHour(taskKey: string) {
+    const taskEntries = entries.filter((entry) => (entry.taskId || entry.id) === taskKey);
+    const currentTotalSeconds = taskEntries.reduce(
+      (sum, entry) => sum + (invoiceDurationOverrides[entry.id] ?? entry.durationSeconds),
+      0
+    );
+    const roundedTotalSeconds = roundSecondsUpToHour(currentTotalSeconds);
+    const deltaSeconds = roundedTotalSeconds - currentTotalSeconds;
+    const targetEntry = taskEntries[0];
+
+    if (!targetEntry || deltaSeconds <= 0) return;
+
+    setInvoiceError(null);
+    setInvoiceMagicBursts((current) => ({
+      ...current,
+      [taskKey]: Date.now()
+    }));
+    setInvoiceDurationOverrides((current) => ({
+      ...current,
+      [targetEntry.id]: (current[targetEntry.id] ?? targetEntry.durationSeconds) + deltaSeconds
+    }));
   }
 
   async function handleCreateInvoice() {
@@ -394,6 +449,33 @@ export default function DashboardPage() {
       return;
     }
 
+    const durationOverrides = entries.flatMap((entry) => {
+      const durationSeconds = invoiceDurationOverrides[entry.id];
+      if (durationSeconds === undefined || durationSeconds === entry.durationSeconds) {
+        return [];
+      }
+
+      return [{ timeEntryId: entry.id, durationSeconds }];
+    });
+    const requestBody: {
+      clientName: string;
+      dateRange: DateRange;
+      dueDate: null;
+      timeEntryIds: string[];
+      totalCents: number;
+      durationOverrides?: { timeEntryId: string; durationSeconds: number }[];
+    } = {
+      clientName: "Marques LLC",
+      dateRange: uninvoicedWorkRange,
+      dueDate: null,
+      totalCents,
+      timeEntryIds: entries.map((e) => e.id)
+    };
+
+    if (durationOverrides.length > 0) {
+      requestBody.durationOverrides = durationOverrides;
+    }
+
     setInvoicing(true);
     setInvoiceError(null);
     try {
@@ -401,13 +483,7 @@ export default function DashboardPage() {
       const response = await fetch("/api/invoices/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          clientName: "Marques LLC",
-          dateRange: uninvoicedWorkRange,
-          dueDate: null,
-          totalCents,
-          timeEntryIds: entries.map((e) => e.id)
-        })
+        body: JSON.stringify(requestBody)
       });
       if (!response.ok) throw new Error(await response.text());
       const result = (await response.json()) as { id: string };
@@ -613,16 +689,52 @@ export default function DashboardPage() {
                 {invoiceTaskRows.map((row) => (
                   <div key={row.key} className="invoice-review-row">
                     <span className="invoice-review-task">{row.taskTitle}</span>
-                    <strong className="mono-number">
-                      {secondsToDecimalHours(row.durationSeconds).toFixed(2)} hrs
-                    </strong>
+                    <div className="invoice-review-time">
+                      <strong className="mono-number">{formatShortDuration(row.durationSeconds)}</strong>
+                      <button
+                        type="button"
+                        className="invoice-round-up-btn"
+                        onClick={() => roundInvoiceTaskToNextHour(row.key)}
+                        disabled={invoicing || row.durationSeconds === row.roundedDurationSeconds}
+                        aria-label={`Round ${row.taskTitle} up to the next hour`}
+                        title={
+                          row.durationSeconds === row.roundedDurationSeconds
+                            ? "Already at a whole hour"
+                            : `Round up to ${formatShortDuration(row.roundedDurationSeconds)}`
+                        }
+                      >
+                        <ArrowUp size={14} />
+                        {invoiceMagicBursts[row.key] !== undefined ? (
+                          <span
+                            key={invoiceMagicBursts[row.key]}
+                            className="invoice-magic-burst"
+                            aria-hidden="true"
+                            onAnimationEnd={(event) => {
+                              if (event.currentTarget !== event.target) return;
+                              setInvoiceMagicBursts((current) => {
+                                const next = { ...current };
+                                delete next[row.key];
+                                return next;
+                              });
+                            }}
+                          >
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        ) : null}
+                      </button>
+                    </div>
                   </div>
                 ))}
                 <div className="invoice-review-row invoice-review-total-hours">
                   <span>Total time</span>
-                  <strong className="mono-number">
-                    {secondsToDecimalHours(totals.seconds).toFixed(2)} hrs
-                  </strong>
+                  <strong className="mono-number">{formatShortDuration(invoiceEffectiveSeconds)}</strong>
                 </div>
               </div>
 
@@ -636,7 +748,10 @@ export default function DashboardPage() {
                     id="invoice-total"
                     inputMode="decimal"
                     value={invoiceTotalInput}
-                    onChange={(e) => setInvoiceTotalInput(e.target.value)}
+                    onChange={(e) => {
+                      setInvoiceTotalInput(e.target.value);
+                      setInvoiceTotalManuallyEdited(true);
+                    }}
                     disabled={invoicing}
                     placeholder="0.00"
                   />

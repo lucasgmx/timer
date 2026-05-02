@@ -49,7 +49,6 @@ export function Header() {
           <div key={tz} className="topbar-clock">
             <span className="topbar-clock-label">{label}</span>
             <div className="topbar-clock-display">
-              <span className="topbar-clock-ghost" aria-hidden="true">8:88 AM&#x2007;</span>
               <span className="topbar-clock-time">
                 {new Intl.DateTimeFormat("en-US", {
                   hour: "numeric",

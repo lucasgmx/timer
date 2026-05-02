@@ -145,23 +145,14 @@
 }
 
 .topbar-clock-display {
-  position: relative;
-  display: inline-flex;
-}
-
-.topbar-clock-ghost {
-  font-family: 'DSEG7', monospace;
-  font-size: 1.65rem;
-  line-height: 1;
-  text-align: right;
-  color: rgba(255, 140, 0, 0.12);
-  user-select: none;
-  pointer-events: none;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 8.25ch;
+  white-space: nowrap;
 }
 
 .topbar-clock-time {
-  position: absolute;
-  inset: 0;
+  display: block;
   font-family: 'DSEG7', monospace;
   font-size: 1.65rem;
   line-height: 1;
@@ -417,7 +408,6 @@
     padding: 6px 8px 8px;
   }
 
-  .topbar-clock-ghost,
   .topbar-clock-time {
     font-size: clamp(1.1rem, 5.8vw, 1.45rem);
   }

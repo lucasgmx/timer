@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { formatDuration } from "@/lib/billing/formatDuration";
 
+const appTitle = "Marques & Co.";
+
 export function RunningTimer({ startTime }: { startTime?: Date | null }) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -21,9 +23,9 @@ export function RunningTimer({ startTime }: { startTime?: Date | null }) {
 
   useEffect(() => {
     if (!startTime) return;
-    document.title = `${formatDuration(elapsedSeconds)} | Timer`;
+    document.title = `${formatDuration(elapsedSeconds)} | ${appTitle}`;
     return () => {
-      document.title = "Timer";
+      document.title = appTitle;
     };
   }, [elapsedSeconds, startTime]);
 

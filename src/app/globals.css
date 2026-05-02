@@ -1161,88 +1161,93 @@ a {
   top: 50%;
   left: 50%;
   z-index: 2;
-  width: 58px;
-  height: 58px;
+  width: 86px;
+  height: 86px;
   pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0 8%, rgba(255, 247, 178, 0.28) 14%, transparent 46%);
+  filter:
+    drop-shadow(0 0 10px rgba(255, 246, 163, 0.95))
+    drop-shadow(0 0 22px rgba(140, 232, 173, 0.65));
   transform: translate(-50%, -50%);
-  animation: invoice-magic-burst-pop 820ms ease-out forwards;
+  animation: invoice-magic-burst-pop 900ms ease-out forwards;
 }
 
 .invoice-magic-burst span {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: calc(4px * var(--sparkle-scale, 1));
-  height: calc(4px * var(--sparkle-scale, 1));
+  width: calc(6px * var(--sparkle-scale, 1));
+  height: calc(6px * var(--sparkle-scale, 1));
   border-radius: 999px;
   background: var(--sparkle-color, #fff5a8);
   box-shadow:
-    0 0 6px var(--sparkle-color, #fff5a8),
-    0 0 12px rgba(140, 232, 173, 0.44);
+    0 0 8px var(--sparkle-color, #fff5a8),
+    0 0 18px var(--sparkle-color, #fff5a8),
+    0 0 30px rgba(140, 232, 173, 0.7);
   transform: translate(-50%, -50%) scale(0.45);
-  animation: invoice-magic-dust 680ms cubic-bezier(0.18, 0.72, 0.24, 1) forwards;
+  animation: invoice-magic-dust 760ms cubic-bezier(0.18, 0.72, 0.24, 1) forwards;
   animation-delay: var(--sparkle-delay, 0ms);
 }
 
 .invoice-magic-burst span:nth-child(1) {
-  --sparkle-x: -21px;
-  --sparkle-y: -20px;
-  --sparkle-scale: 0.95;
+  --sparkle-x: -35px;
+  --sparkle-y: -31px;
+  --sparkle-scale: 1.15;
   --sparkle-color: #fff6a3;
 }
 
 .invoice-magic-burst span:nth-child(2) {
-  --sparkle-x: 4px;
-  --sparkle-y: -27px;
-  --sparkle-scale: 0.72;
+  --sparkle-x: 6px;
+  --sparkle-y: -42px;
+  --sparkle-scale: 0.95;
   --sparkle-delay: 35ms;
   --sparkle-color: #a7ffcf;
 }
 
 .invoice-magic-burst span:nth-child(3) {
-  --sparkle-x: 24px;
-  --sparkle-y: -14px;
-  --sparkle-scale: 1.05;
+  --sparkle-x: 38px;
+  --sparkle-y: -22px;
+  --sparkle-scale: 1.28;
   --sparkle-delay: 20ms;
   --sparkle-color: #f8dbff;
 }
 
 .invoice-magic-burst span:nth-child(4) {
-  --sparkle-x: 26px;
-  --sparkle-y: 10px;
-  --sparkle-scale: 0.82;
+  --sparkle-x: 42px;
+  --sparkle-y: 17px;
+  --sparkle-scale: 1.05;
   --sparkle-delay: 65ms;
   --sparkle-color: #fff7c7;
 }
 
 .invoice-magic-burst span:nth-child(5) {
-  --sparkle-x: 8px;
-  --sparkle-y: 25px;
-  --sparkle-scale: 1;
+  --sparkle-x: 12px;
+  --sparkle-y: 40px;
+  --sparkle-scale: 1.22;
   --sparkle-delay: 40ms;
-  --sparkle-color: #8ce8ad;
+  --sparkle-color: #b7ffd4;
 }
 
 .invoice-magic-burst span:nth-child(6) {
-  --sparkle-x: -19px;
-  --sparkle-y: 18px;
-  --sparkle-scale: 0.7;
+  --sparkle-x: -31px;
+  --sparkle-y: 29px;
+  --sparkle-scale: 0.95;
   --sparkle-delay: 70ms;
   --sparkle-color: #d8ffed;
 }
 
 .invoice-magic-burst span:nth-child(7) {
-  --sparkle-x: -28px;
-  --sparkle-y: 2px;
-  --sparkle-scale: 0.88;
+  --sparkle-x: -43px;
+  --sparkle-y: 3px;
+  --sparkle-scale: 1.08;
   --sparkle-delay: 25ms;
   --sparkle-color: #f7fff1;
 }
 
 .invoice-magic-burst span:nth-child(8) {
-  --sparkle-x: -7px;
-  --sparkle-y: -10px;
-  --sparkle-scale: 1.22;
+  --sparkle-x: -11px;
+  --sparkle-y: -16px;
+  --sparkle-scale: 1.55;
   --sparkle-delay: 90ms;
   --sparkle-color: #ffffff;
 }
@@ -1250,21 +1255,21 @@ a {
 @keyframes invoice-magic-burst-pop {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.45) rotate(-12deg);
+    transform: translate(-50%, -50%) scale(0.32) rotate(-14deg);
   }
   15% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1.08) rotate(12deg);
+    transform: translate(-50%, -50%) scale(1.2) rotate(16deg);
   }
 }
 
 @keyframes invoice-magic-dust {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.35);
+    transform: translate(-50%, -50%) scale(0.45);
   }
   18% {
     opacity: 1;
@@ -1273,7 +1278,7 @@ a {
     opacity: 0;
     transform:
       translate(calc(-50% + var(--sparkle-x)), calc(-50% + var(--sparkle-y)))
-      scale(0.9);
+      scale(1.05);
   }
 }
 

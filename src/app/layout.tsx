@@ -3,7 +3,7 @@ import { IBM_Plex_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
-const appName = "Timer";
+const appName = "Marques & Co.";
 const appDescription = "Internal time tracking and invoicing for marques.llc.";
 const favicon = {
   url: "/favicon.png",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   applicationName: appName,
   title: {
     default: appName,
-    template: "%s | Timer"
+    template: `%s | ${appName}`
   },
   description: appDescription,
   manifest: "/site.webmanifest",

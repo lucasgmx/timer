@@ -3,6 +3,20 @@ import { IBM_Plex_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
+const appName = "Timer";
+const appDescription = "Internal time tracking and invoicing for marques.llc.";
+const favicon = {
+  url: "/favicon.png",
+  type: "image/png",
+  sizes: "1254x1254"
+};
+const socialImage = {
+  url: favicon.url,
+  width: 1254,
+  height: 1254,
+  alt: appName
+};
+
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
@@ -12,22 +26,36 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://timer.marques.llc"),
+  applicationName: appName,
   title: {
-    default: "Timer",
+    default: appName,
     template: "%s | Timer"
   },
-  description: "Internal time tracking and invoicing for marques.llc.",
+  description: appDescription,
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [favicon],
+    shortcut: [favicon],
+    apple: [favicon]
+  },
   openGraph: {
     type: "website",
-    siteName: "Timer",
-    title: "Timer",
-    description: "Internal time tracking and invoicing for marques.llc.",
-    url: "https://timer.marques.llc"
+    siteName: appName,
+    title: appName,
+    description: appDescription,
+    url: "https://timer.marques.llc",
+    images: [socialImage]
   },
   twitter: {
     card: "summary_large_image",
-    title: "Timer",
-    description: "Internal time tracking and invoicing for marques.llc."
+    title: appName,
+    description: appDescription,
+    images: [socialImage]
+  },
+  other: {
+    thumbnail: favicon.url,
+    "msapplication-TileImage": favicon.url,
+    "msapplication-TileColor": "#090a0b"
   }
 };
 
